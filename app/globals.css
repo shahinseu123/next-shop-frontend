@@ -3,13 +3,13 @@
 
 
 body {
-  background: var(--background);
+  background: rgb(243, 243, 243);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
 .shop-container {
    max-width: 1200px;
-  margin: 0 auto;
+    margin: 0 auto;
 }
 .active{
   background-color: #F99A23;
