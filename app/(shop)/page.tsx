@@ -4,26 +4,29 @@ import { Suspense } from "react";
 import { Pretty } from "@/components/utility/Pretty";
 import { CategoryCardList } from "@/components/category/CategoryCardList";
 import { BrandCardList } from "@/components/brand/BrandCardList";
+import { ProductCardList } from "@/components/product/ProductCardList";
 export default async function Home({
   searchParams,
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const param = await searchParams;
-  const [productsData, categories, brands] = await Promise.all([
+  const [products, categories, brands] = await Promise.all([
     getProducts(),
     getCategories(),
     getBrands(),
   ]);
   // console.log(brands);
   // console.log(categories);
-  // console.log(productsData);
+  console.log(products);
   return (
     <>
       <div >
+      <Pretty data={products.content} />
         <Suspense fallback={"Loading..."}>
           <BrandCardList brands={brands} />
           <CategoryCardList categories={categories} />
+          <ProductCardList products={products.content} />
         </Suspense>
       </div>
     </>

@@ -79,21 +79,21 @@ export const Footer = () => {
   ];
 
   return (
-    <footer className="bg-gray-900 border-t border-gray-800 mt-auto">
-      {/* Features Section - Dark Theme */}
-      <div className="bg-gray-800 border-b border-gray-700">
+    <footer className="bg-white border-t border-gray-200 mt-auto">
+      {/* Features Section - Light Theme */}
+      <div className="bg-gray-50 border-b border-gray-200">
         <div className="shop-container mx-auto px-4 py-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {features.map((feature, index) => (
               <div key={index} className="flex items-center gap-3 group">
-                <div className="p-2.5 bg-gray-700 rounded-xl text-gray-400 group-hover:bg-gray-600 group-hover:text-white transition-all duration-300">
+                <div className="p-2.5 bg-gray-100 rounded-xl text-gray-600 group-hover:bg-gray-200 group-hover:text-gray-900 transition-all duration-300">
                   {feature.icon}
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-200 text-sm uppercase tracking-wide">
+                  <h3 className="font-semibold text-gray-800 text-sm uppercase tracking-wide">
                     {feature.title}
                   </h3>
-                  <p className="text-xs text-gray-400">{feature.description}</p>
+                  <p className="text-xs text-gray-500">{feature.description}</p>
                 </div>
               </div>
             ))}
@@ -101,49 +101,49 @@ export const Footer = () => {
         </div>
       </div>
 
-      {/* Main Footer - Dark Theme */}
+      {/* Main Footer - Light Theme */}
       <div className="shop-container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
           {/* Brand Column */}
           <div className="lg:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-4 group">
-              <div className="bg-gray-800 p-2 rounded-xl shadow-md group-hover:bg-gray-700 transition-all duration-300">
-                <Package className="text-gray-300" size={22} />
+              <div className="bg-gray-100 p-2 rounded-xl shadow-sm group-hover:bg-gray-200 transition-all duration-300">
+                <Package className="text-gray-700" size={22} />
               </div>
               <div>
-                <span className="text-xl font-bold text-white tracking-tight">
+                <span className="text-xl font-bold text-gray-900 tracking-tight">
                   ShopHub
                 </span>
-                <p className="text-[10px] text-gray-500 tracking-wider">PREMIUM STORE</p>
+                <p className="text-[10px] text-gray-400 tracking-wider">PREMIUM STORE</p>
               </div>
             </Link>
-            <p className="text-gray-400 text-sm mb-4 leading-relaxed">
+            <p className="text-gray-600 text-sm mb-4 leading-relaxed">
               Your one-stop destination for premium products. Quality assured, best prices guaranteed since 2024.
             </p>
 
             {/* Contact Info */}
             <div className="space-y-3 mb-6">
-              <div className="flex items-start gap-3 text-sm text-gray-400">
-                <MapPin size={16} className="text-gray-500 shrink-0 mt-0.5" />
+              <div className="flex items-start gap-3 text-sm text-gray-600">
+                <MapPin size={16} className="text-gray-400 shrink-0 mt-0.5" />
                 <span>123 Commerce Street, New York, NY 10001, USA</span>
               </div>
-              <div className="flex items-center gap-3 text-sm text-gray-400">
-                <Phone size={16} className="text-gray-500 shrink-0" />
+              <div className="flex items-center gap-3 text-sm text-gray-600">
+                <Phone size={16} className="text-gray-400 shrink-0" />
                 <span>+880 1307 692679</span>
               </div>
-              <div className="flex items-center gap-3 text-sm text-gray-400">
-                <Mail size={16} className="text-gray-500 shrink-0" />
+              <div className="flex items-center gap-3 text-sm text-gray-600">
+                <Mail size={16} className="text-gray-400 shrink-0" />
                 <span>support@shophub.com</span>
               </div>
-              <div className="flex items-center gap-3 text-sm text-gray-400">
-                <Clock size={16} className="text-gray-500 shrink-0" />
+              <div className="flex items-center gap-3 text-sm text-gray-600">
+                <Clock size={16} className="text-gray-400 shrink-0" />
                 <span>Mon-Sat: 9AM - 8PM EST</span>
               </div>
             </div>
 
             {/* Social Links */}
             <div>
-              <h4 className="font-semibold text-gray-300 mb-3 text-sm uppercase tracking-wide">
+              <h4 className="font-semibold text-gray-800 mb-3 text-sm uppercase tracking-wide">
                 Follow Us
               </h4>
               {/* <div className="flex gap-2">
@@ -155,7 +155,7 @@ export const Footer = () => {
                       href={social.href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`p-2 bg-gray-800 rounded-lg text-gray-400 ${social.color} transition-all duration-300 hover:scale-110 hover:shadow-md hover:bg-gray-700`}
+                      className={`p-2 bg-gray-100 rounded-lg text-gray-500 ${social.color} transition-all duration-300 hover:scale-110 hover:shadow-md hover:bg-gray-200`}
                       aria-label={social.label}
                     >
                       <IconComponent size={18} />
@@ -168,7 +168,7 @@ export const Footer = () => {
 
           {/* Categories Column */}
           <div>
-            <h3 className="font-semibold text-gray-300 mb-4 text-sm uppercase tracking-wide flex items-center gap-2">
+            <h3 className="font-semibold text-gray-800 mb-4 text-sm uppercase tracking-wide flex items-center gap-2">
               <Gem size={16} className="text-gray-500" />
               Categories
             </h3>
@@ -177,9 +177,9 @@ export const Footer = () => {
                 <li key={index}>
                   <Link
                     href={category.href}
-                    className="text-gray-400 hover:text-gray-200 text-sm transition-colors flex items-center gap-1 group"
+                    className="text-gray-500 hover:text-gray-900 text-sm transition-colors flex items-center gap-1 group"
                   >
-                    <ChevronRight size={14} className="opacity-0 group-hover:opacity-100 transition-all text-gray-500" />
+                    <ChevronRight size={14} className="opacity-0 group-hover:opacity-100 transition-all text-gray-400" />
                     {category.name}
                   </Link>
                 </li>
@@ -189,7 +189,7 @@ export const Footer = () => {
 
           {/* Quick Links Column */}
           <div>
-            <h3 className="font-semibold text-gray-300 mb-4 text-sm uppercase tracking-wide flex items-center gap-2">
+            <h3 className="font-semibold text-gray-800 mb-4 text-sm uppercase tracking-wide flex items-center gap-2">
               <Crown size={16} className="text-gray-500" />
               Quick Links
             </h3>
@@ -198,9 +198,9 @@ export const Footer = () => {
                 <li key={index}>
                   <Link
                     href={link.href}
-                    className="text-gray-400 hover:text-gray-200 text-sm transition-colors flex items-center gap-1 group"
+                    className="text-gray-500 hover:text-gray-900 text-sm transition-colors flex items-center gap-1 group"
                   >
-                    <ChevronRight size={14} className="opacity-0 group-hover:opacity-100 transition-all text-gray-500" />
+                    <ChevronRight size={14} className="opacity-0 group-hover:opacity-100 transition-all text-gray-400" />
                     {link.name}
                   </Link>
                 </li>
@@ -210,7 +210,7 @@ export const Footer = () => {
 
           {/* Account Column */}
           <div>
-            <h3 className="font-semibold text-gray-300 mb-4 text-sm uppercase tracking-wide flex items-center gap-2">
+            <h3 className="font-semibold text-gray-800 mb-4 text-sm uppercase tracking-wide flex items-center gap-2">
               <Heart size={16} className="text-gray-500" />
               My Account
             </h3>
@@ -219,9 +219,9 @@ export const Footer = () => {
                 <li key={index}>
                   <Link
                     href={link.href}
-                    className="text-gray-400 hover:text-gray-200 text-sm transition-colors flex items-center gap-1 group"
+                    className="text-gray-500 hover:text-gray-900 text-sm transition-colors flex items-center gap-1 group"
                   >
-                    <ChevronRight size={14} className="opacity-0 group-hover:opacity-100 transition-all text-gray-500" />
+                    <ChevronRight size={14} className="opacity-0 group-hover:opacity-100 transition-all text-gray-400" />
                     {link.name}
                   </Link>
                 </li>
@@ -231,10 +231,10 @@ export const Footer = () => {
 
           {/* Newsletter Column */}
           <div>
-            <h3 className="font-semibold text-gray-300 mb-4 text-sm uppercase tracking-wide">
+            <h3 className="font-semibold text-gray-800 mb-4 text-sm uppercase tracking-wide">
               Newsletter
             </h3>
-            <p className="text-gray-400 text-sm mb-3 leading-relaxed">
+            <p className="text-gray-600 text-sm mb-3 leading-relaxed">
               Subscribe to get special offers, free giveaways, and exclusive deals.
             </p>
             <form className="mb-4">
@@ -242,11 +242,11 @@ export const Footer = () => {
                 <input
                   type="email"
                   placeholder="Your email address"
-                  className="px-4 py-2.5 border border-gray-700 rounded-lg focus:outline-none focus:border-gray-600 focus:ring-2 focus:ring-gray-700 transition-all bg-gray-800 text-white placeholder-gray-500 text-sm"
+                  className="px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-200 transition-all bg-white text-gray-900 placeholder-gray-400 text-sm"
                 />
                 <button
                   type="submit"
-                  className="px-4 py-2.5 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-all text-sm font-medium uppercase tracking-wide"
+                  className="px-4 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-all text-sm font-medium uppercase tracking-wide"
                 >
                   Subscribe
                 </button>
@@ -260,22 +260,22 @@ export const Footer = () => {
         </div>
 
         {/* Trust Badges */}
-        <div className="border-t border-gray-800 mt-10 pt-8">
+        <div className="border-t border-gray-200 mt-10 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2">
                 <Award size={20} className="text-gray-500" />
-                <span className="text-xs text-gray-400">Quality Guaranteed</span>
+                <span className="text-xs text-gray-600">Quality Guaranteed</span>
               </div>
-              <div className="w-px h-4 bg-gray-700 hidden md:block"></div>
+              <div className="w-px h-4 bg-gray-300 hidden md:block"></div>
               <div className="flex items-center gap-2">
                 <Shield size={20} className="text-gray-500" />
-                <span className="text-xs text-gray-400">Secure Checkout</span>
+                <span className="text-xs text-gray-600">Secure Checkout</span>
               </div>
-              <div className="w-px h-4 bg-gray-700 hidden md:block"></div>
+              <div className="w-px h-4 bg-gray-300 hidden md:block"></div>
               <div className="flex items-center gap-2">
                 <Truck size={20} className="text-gray-500" />
-                <span className="text-xs text-gray-400">Fast Delivery</span>
+                <span className="text-xs text-gray-600">Fast Delivery</span>
               </div>
             </div>
 
@@ -284,7 +284,7 @@ export const Footer = () => {
               <span className="text-xs text-gray-500 uppercase tracking-wide">Secure payments:</span>
               <div className="flex items-center gap-2">
                 {paymentMethods.map((method, index) => (
-                  <div key={index} className="text-2xl hover:scale-110 transition-transform cursor-pointer text-gray-400">
+                  <div key={index} className="text-2xl hover:scale-110 transition-transform cursor-pointer text-gray-500">
                     {method.icon}
                   </div>
                 ))}
@@ -294,15 +294,15 @@ export const Footer = () => {
         </div>
 
         {/* Bottom Bar */}
-        <div className="border-t border-gray-800 mt-8 pt-6">
+        <div className="border-t border-gray-200 mt-8 pt-6">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-xs text-gray-500">
               &copy; {currentYear} ShopHub. All rights reserved. | 
-              <Link href="/privacy-policy" className="hover:text-gray-300 ml-1 transition-colors">Privacy Policy</Link>
+              <Link href="/privacy-policy" className="hover:text-gray-700 ml-1 transition-colors">Privacy Policy</Link>
               <span className="mx-1">|</span>
-              <Link href="/terms-of-service" className="hover:text-gray-300 transition-colors">Terms of Service</Link>
+              <Link href="/terms-of-service" className="hover:text-gray-700 transition-colors">Terms of Service</Link>
               <span className="mx-1">|</span>
-              <Link href="/sitemap" className="hover:text-gray-300 transition-colors">Sitemap</Link>
+              <Link href="/sitemap" className="hover:text-gray-700 transition-colors">Sitemap</Link>
             </p>
             <div className="flex items-center gap-1">
               <span className="text-xs text-gray-500 flex items-center gap-1">

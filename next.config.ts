@@ -15,6 +15,10 @@ const nextConfig: NextConfig = {
         hostname: 'spring-shop-backend-production.up.railway.app',
         pathname: '/uploads/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'www.urbanears.com',
+      },
     ],
   },
 

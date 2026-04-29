@@ -56,8 +56,8 @@ export async function getProduct(id: string) {
     //   'Authorization': `Bearer ${token}`,
     // },
     next: {
-      revalidate: 3600,
-      tags: [`product-${id}`],
+      revalidate: false,
+      // tags: [`product-${id}`],
     },
   });
   

@@ -11,3 +11,16 @@ export interface Category {
     imageUrl: string,
     createdAt: string
 }
+export interface Product {
+  id: number;
+  name: string;
+  slug: string;
+  sellingPrice: number;
+  discountPrice?: number | null;
+  discountPercentage?: number | null;
+  imageUrls: string[] | null;
+  thumbnailUrl: string;
+  sku?: string | null;
+  brandName: string;
+  brandLogoUrl: string;
+}
