@@ -4,6 +4,12 @@ const nextConfig: NextConfig = {
  images: {
     remotePatterns: [
       {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '9009',
+        pathname: '/upload/**',  // Match your controller's return path
+      },
+      {
         protocol: 'https',
         hostname: 'spring-shop-backend-production.up.railway.app',
         port: '',

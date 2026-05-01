@@ -70,7 +70,7 @@ export async function getProduct(id: string) {
 
 // Server Action: Get brands
 export async function getBrands() {
-  const token = (await cookies()).get('accessToken')?.value;
+  // const token = (await cookies()).get('accessToken')?.value;
   
   const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/brands/list`, {
     // headers: {
@@ -91,7 +91,7 @@ export async function getBrands() {
 
 // Server Action: Get categories
 export async function getCategories() {
-  const token = (await cookies()).get('accessToken')?.value;
+  // const token = (await cookies()).get('accessToken')?.value;
   
   const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/categories`, {
     // headers: {

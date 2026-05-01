@@ -4,12 +4,14 @@ export interface Brand {
     logoUrl: string,
     slug: null | string
 }
+
 export interface Category {
-    name: string,
-    id: number,
-    slug: string,
-    imageUrl: string,
-    createdAt: string
+  id: number;
+  name: string;
+  parentId: number | null;
+  slug: string;
+  imageUrl: string;
+  createdAt: number[] | string; // Handle both array and string until backend is fixed
 }
 export interface Product {
   id: number;
@@ -23,4 +25,23 @@ export interface Product {
   sku?: string | null;
   brandName: string;
   brandLogoUrl: string;
+}
+
+export interface PageResponse<T> {
+  content: T[];
+  number: number;
+  totalPages: number;
+  totalElements: number;
+  first: boolean;
+  last: boolean;
+  pageable?: {
+    pageNumber: number;
+    pageSize: number;
+  };
+  sort?: {
+    empty: boolean;
+    sorted: boolean;
+    unsorted: boolean;
+  };
+  empty?: boolean;
 }

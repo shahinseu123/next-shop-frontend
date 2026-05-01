@@ -1,18 +1,13 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, use, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Upload, X, Check, AlertCircle, ChevronDown } from "lucide-react";
+import { ArrowLeft, Check, AlertCircle } from "lucide-react";
 import { useApi } from "@/hook/useApi";
-interface CategoryFormData {
-  name: string;
-  parentId: number | null;
-  imageUrl: string;
-}
+import FileUpload from "@/components/admin/common/FileUpload";
+import { Pretty } from "@/components/utility/Pretty";
 
-interface Category {
-  id: number;
+interface CategoryFormData {
   name: string;
   parentId: number | null;
   imageUrl: string;
@@ -25,137 +20,58 @@ export default function CreateCategoryPage() {
     parentId: null,
     imageUrl: "",
   });
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>("");
   const [uploadError, setUploadError] = useState<string>("");
-  const [showParentDropdown, setShowParentDropdown] = useState(false);
 
-  // Fetch categories for parent dropdown
-  const { 
-    execute: fetchCategories, 
-    data: categoriesData, 
-    loading: fetchingCategories 
-  } = useApi('/api/v1/categories', 'GET');
-
-  // Create category
-  const { 
-    execute: createCategory, 
-    loading, 
+  const {
+    execute: createCategory,
+    loading,
     error: apiError,
-    data: responseData 
-  } = useApi('/api/categories', 'POST', {
+    data: responseData,
+  } = useApi("/api/v1/categories", "POST", {
     onSuccess: () => {
       setTimeout(() => {
         router.push("/application/shop/admin/categories");
       }, 1500);
-    }
-  });
-
-  // Upload image
-  const { 
-    execute: uploadImage, 
-    loading: uploading 
-  } = useApi('/upload', 'POST', {
-    requiresAuth: true,
-    onSuccess: (data) => {
-      const imageUrl = data.url || data.fullUrl;
-      if (imageUrl) {
-        setFormData(prev => ({ ...prev, imageUrl }));
-        setUploadError("");
-      }
     },
-    onError: (error) => {
-      setUploadError(error.message || "Failed to upload image");
-    }
+  });
+  const {
+    execute: getCategoryList,
+    loading: categoryListLoading,
+    error: fetchError,
+    data: categoryList,
+  } = useApi("/api/v1/categories/list", "GET", {
+    onSuccess: () => {},
   });
 
-  // Fetch categories on mount
+  const categoryListOptions = useMemo(
+    () =>
+      (categoryList || []).map((category: any) => ({
+        id: category.id,
+        name: category.name,
+      })),
+    [categoryList],
+  );
+
   useEffect(() => {
-    fetchCategories();
+    getCategoryList();
   }, []);
 
-  // Build category tree for dropdown
-  const buildCategoryTree = (categories: Category[], parentId: number | null = null, level = 0): any[] => {
-    const result: any[] = [];
-    const filtered = categories.filter(cat => cat.parentId === parentId);
-    
-    for (const category of filtered) {
-      result.push({
-        ...category,
-        level,
-        displayName: `${'—'.repeat(level)}${level > 0 ? ' ' : ''}${category.name}`
-      });
-      result.push(...buildCategoryTree(categories, category.id, level + 1));
-    }
-    return result;
-  };
-
-  const categories = categoriesData || [];
-  const flatCategories = buildCategoryTree(categories);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleParentSelect = (categoryId: number | null) => {
-    setFormData(prev => ({ ...prev, parentId: categoryId }));
-    setShowParentDropdown(false);
-  };
-
-  const getSelectedParentName = () => {
-    if (formData.parentId === null) return "None (Top Level)";
-    const selected = flatCategories.find(cat => cat.id === formData.parentId);
-    return selected ? selected.displayName : "None (Top Level)";
-  };
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    if (!file.type.startsWith("image/")) {
-      setUploadError("Please upload an image file");
-      return;
-    }
-
-    // Validate file size (max 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      setUploadError("File size should be less than 2MB");
-      return;
-    }
-
-    // Preview the image
-    const previewUrl = URL.createObjectURL(file);
-    setImagePreview(previewUrl);
-    setImageFile(file);
+  const handleUploadSuccess = (url: string) => {
+    setFormData((prev) => ({ ...prev, imageUrl: url }));
     setUploadError("");
-
-    // Upload the image immediately
-    const formData = new FormData();
-    formData.append("file", file);
-    
-    await uploadImage({
-      data: formData,
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
   };
 
-  const removeImage = () => {
-    setImageFile(null);
-    setImagePreview("");
+  const handleUploadError = (error: string) => {
+    setUploadError(error);
+  };
+
+  const handleUploadRemove = () => {
     setFormData((prev) => ({ ...prev, imageUrl: "" }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate form
     if (!formData.name.trim()) {
       setUploadError("Category name is required");
       return;
@@ -166,22 +82,19 @@ export default function CreateCategoryPage() {
       return;
     }
 
-    // Prepare category data (slug will be generated by backend)
-    const categoryData = {
-      name: formData.name.trim(),
-      parentId: formData.parentId,
-      imageUrl: formData.imageUrl,
-    };
-
-    // Create category using useApi hook
-    await createCategory({ data: categoryData });
+    await createCategory({
+      data: {
+        name: formData.name.trim(),
+        parentId: formData.parentId,
+        imageUrl: formData.imageUrl,
+      },
+    });
   };
 
   const errorMessage = uploadError || apiError?.message;
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link
@@ -191,14 +104,21 @@ export default function CreateCategoryPage() {
             <ArrowLeft className="w-5 h-5 text-gray-600" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">Create New Category</h1>
-            <p className="text-gray-600 mt-1">Add a new category to your store</p>
+            <h1 className="text-2xl font-bold text-gray-800">
+              Create New Category
+            </h1>
+            <p className="text-gray-600 mt-1">
+              Add a new category to your store
+            </p>
           </div>
         </div>
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white rounded-xl shadow-sm border border-gray-100 p-6"
+      >
         {/* Error Alert */}
         {errorMessage && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
@@ -211,7 +131,9 @@ export default function CreateCategoryPage() {
         {responseData && (
           <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3">
             <Check className="w-5 h-5 text-green-500" />
-            <span className="text-green-700">Category created successfully! Redirecting...</span>
+            <span className="text-green-700">
+              Category created successfully! Redirecting...
+            </span>
           </div>
         )}
 
@@ -225,122 +147,58 @@ export default function CreateCategoryPage() {
               type="text"
               name="name"
               value={formData.name}
-              onChange={handleInputChange}
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, name: e.target.value }))
+              }
               placeholder="e.g., Electronics, Clothing, Books"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
               disabled={loading}
             />
-            <p className="text-xs text-gray-500 mt-1">This will be displayed on the store (slug will be auto-generated)</p>
+            <p className="text-xs text-gray-500 mt-1">
+              This will be displayed on the store (slug will be auto-generated)
+            </p>
           </div>
-
-          {/* Parent Category Dropdown */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Parent Category
-            </label>
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setShowParentDropdown(!showParentDropdown)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent flex items-center justify-between bg-white"
-                disabled={loading || fetchingCategories}
-              >
-                <span className={formData.parentId === null ? "text-gray-500" : "text-gray-900"}>
-                  {getSelectedParentName()}
-                </span>
-                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showParentDropdown ? 'rotate-180' : ''}`} />
-              </button>
-
-              {showParentDropdown && (
-                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                  <div
-                    onClick={() => handleParentSelect(null)}
-                    className="px-3 py-2 hover:bg-gray-50 cursor-pointer text-gray-700"
-                  >
-                    None (Top Level)
-                  </div>
-                  {flatCategories.map((category) => (
-                    <div
-                      key={category.id}
-                      onClick={() => handleParentSelect(category.id)}
-                      className={`px-3 py-2 hover:bg-gray-50 cursor-pointer ${
-                        formData.parentId === category.id ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
-                      }`}
-                      style={{ paddingLeft: `${16 + category.level * 20}px` }}
-                    >
-                      {category.displayName}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            <p className="text-xs text-gray-500 mt-1">Select a parent category (optional)</p>
+            <select
+              name="parentId"
+              id="parentId"
+              onChange={(e) =>
+                setFormData((prev) => ({ ...prev, parentId: e.target.value as unknown as number }))
+              }
+              className=" border border-gray-300 p-2 w-full rounded-lg"
+            >
+              <option value="">Select Parent Category</option>
+              {categoryListOptions &&
+                categoryListOptions.length &&
+                categoryListOptions.map((item: any) => {
+                  return (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  );
+                })}
+            </select>
           </div>
 
-          {/* Category Image Upload */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Category Image <span className="text-red-500">*</span>
-            </label>
-            <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-blue-500 transition-colors">
-              {imagePreview ? (
-                <div className="relative">
-                  <div className="relative w-32 h-32 mx-auto">
-                    <Image
-                      src={imagePreview}
-                      alt="Category image preview"
-                      fill
-                      className="object-cover rounded-lg"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={removeImage}
-                    className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                    disabled={loading || uploading}
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                  {uploading && (
-                    <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
-                      <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-1 text-center">
-                  <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                  <div className="flex text-sm text-gray-600">
-                    <label
-                      htmlFor="image-upload"
-                      className={`relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none ${(loading || uploading) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                      <span>{uploading ? "Uploading..." : "Upload an image"}</span>
-                      <input
-                        id="image-upload"
-                        name="image-upload"
-                        type="file"
-                        className="sr-only"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        disabled={loading || uploading}
-                      />
-                    </label>
-                    <p className="pl-1">or drag and drop</p>
-                  </div>
-                  <p className="text-xs text-gray-500">PNG, JPG, GIF up to 2MB</p>
-                </div>
-              )}
-            </div>
-          </div>
+          {/* File Upload */}
+          <FileUpload
+            label="Category Image"
+            required
+            value={formData.imageUrl}
+            onUploadSuccess={handleUploadSuccess}
+            onUploadError={handleUploadError}
+            onRemove={handleUploadRemove}
+            disabled={loading}
+            maxSize={2}
+          />
 
           {/* Form Actions */}
           <div className="flex gap-3 pt-4 border-t">
             <button
               type="submit"
-              disabled={loading || uploading || !formData.imageUrl}
-              className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2.5 px-4 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium shadow-sm"
+              disabled={loading || !formData.imageUrl}
+              className="flex-1 transition delay-150 duration-300 ease-in-out hover:-translate-y-1 hover:scale-110 hover:bg-indigo-500    py-2.5 px-4 rounded-xl hover:from-blue-700 hover:to-blue-800  disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium shadow-sm"
             >
               {loading ? (
                 <>

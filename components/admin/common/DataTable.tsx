@@ -1,501 +1,528 @@
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Image from "next/image";
-import { 
-  Search, 
-  ChevronLeft, 
-  ChevronRight, 
-  RefreshCw,
+import { useApi } from "@/hook/useApi";
+import {
+  Filter,
+  Plus,
   Pencil,
   Trash2,
-  Eye,
-  EyeOff,
-  Plus,
-  Filter,
-  Download,
-  ChevronDown
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Loader2,
+  AlertCircle,
+  InboxIcon,
 } from "lucide-react";
 
-export interface Column {
+export interface DataTableHeader {
   key: string;
   label: string;
+  type?: "text" | "image" | "badge" | "date" | "custom";
   sortable?: boolean;
-  type?: 'text' | 'image' | 'status' | 'slug' | 'price' | 'date' | 'badge';
+  render?: (value: any, row: any) => React.ReactNode;
 }
 
-export interface DataTableProps {
+export interface ApiContext {
+  url: string;
+  method: "POST" | "GET" | "DELETE" | "PUT";
+}
+
+// Slot Component Types
+interface ToolbarSlotProps {
+  search: string;
+  onSearch: (value: string) => void;
+  onAdd?: () => void;
+}
+
+interface HeaderSlotProps {
+  headers: DataTableHeader[];
+}
+
+interface CellSlotProps {
+  value: any;
+  row: any;
+  column: string;
+  header: DataTableHeader;
+}
+
+interface ActionsSlotProps {
+  row: any;
+  onEdit?: (row: any) => void;
+  onDelete?: (id: number) => void;
+}
+
+interface PaginationSlotProps {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  onPageChange: (page: number) => void;
+}
+
+interface DataTableSlots {
+  Toolbar?: React.ComponentType<ToolbarSlotProps>;
+  Header?: React.ComponentType<HeaderSlotProps>;
+  Cell?: React.ComponentType<CellSlotProps>;
+  Actions?: React.ComponentType<ActionsSlotProps>;
+  Empty?: React.ComponentType;
+  Loading?: React.ComponentType;
+  Pagination?: React.ComponentType<PaginationSlotProps>;
+}
+
+interface DataTableProps {
   title: string;
   description?: string;
-  columns: Column[];
-  data: any[];
-  searchPlaceholder?: string;
-  searchFields?: string[];
-  addButtonText?: string;
-  addButtonLink?: string;
+  headers: DataTableHeader[];
+  apiContext: ApiContext;
+  slots?: DataTableSlots;
   onAdd?: () => void;
-  itemsPerPage?: number;
-  basePath?: string;
-  onDelete?: (id: number) => Promise<void>;
-  showExport?: boolean;
+  onEdit?: (row: any) => void;
+  onDelete?: (id: number) => void;
+  defaultPageSize?: number;
 }
 
-export function DataTable({
-  title,
-  description,
-  columns,
-  data: initialData,
-  searchPlaceholder = "Search...",
-  searchFields = [],
-  addButtonText = "Add New",
-  addButtonLink,
-  onAdd,
-  itemsPerPage = 10,
-  basePath,
-  onDelete: customDelete,
-  showExport = false,
-}: DataTableProps) {
-  const router = useRouter();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [data, setData] = useState(initialData);
-  const [sortField, setSortField] = useState<string>("");
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+// Default slot components
+const DefaultToolbar = ({ search, onSearch, onAdd }: ToolbarSlotProps) => (
+  <div className="flex items-center justify-between mb-6 gap-3">
+    <div className="relative flex-1 max-w-xs">
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
+      <input
+        type="text"
+        placeholder="Search..."
+        value={search}
+        onChange={(e) => onSearch(e.target.value)}
+        className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm text-gray-700 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-200"
+      />
+    </div>
 
-  const handleRefresh = () => {
-    window.location.reload();
-  };
+    <div className="flex items-center gap-2">
+      <button className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-800 hover:bg-gray-50">
+        <Filter size={16} />
+        Filter
+      </button>
+      {onAdd && (
+        <button
+          onClick={onAdd}
+          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700"
+        >
+          <Plus size={16} />
+          Add New
+        </button>
+      )}
+    </div>
+  </div>
+);
 
-  const handleAdd = () => {
-    if (onAdd) {
-      onAdd();
-    } else if (addButtonLink) {
-      router.push(addButtonLink);
-    } else if (basePath) {
-      router.push(`${basePath}/new`);
-    }
-  };
+const DefaultHeader = ({ headers }: HeaderSlotProps) => (
+  <thead>
+    <tr className="bg-gray-50/50 border-b border-gray-100">
+      {headers.map((header) => (
+        <th
+          key={header.key}
+          className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider"
+        >
+          {header.label}
+        </th>
+      ))}
+      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
+        Actions
+      </th>
+    </tr>
+  </thead>
+);
 
-  const handleExport = () => {
-    // Convert data to CSV
-    const headers = columns.map(col => col.label).join(",");
-    const rows = data.map(row => 
-      columns.map(col => {
-        let value = row[col.key];
-        if (col.type === 'price') value = `$${value}`;
-        if (col.type === 'date') value = new Date(value).toLocaleDateString();
-        return `"${String(value).replace(/"/g, '""')}"`;
-      }).join(",")
-    );
-    
-    const csv = [headers, ...rows].join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${title.toLowerCase().replace(/\s+/g, "-")}-export.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+const DefaultCell = ({ value, column, header, row }: CellSlotProps) => {
+  // If a custom render function is provided, use it
+  if (header.render) {
+    return <td className="px-6 py-4">{header.render(value, row)}</td>;
+  }
 
-  const handleSort = (key: string) => {
-    if (sortField === key) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-    } else {
-      setSortField(key);
-      setSortDirection("asc");
-    }
-  };
-
-  // Sort data
-  const sortedData = [...data].sort((a, b) => {
-    if (!sortField) return 0;
-    const aVal = a[sortField];
-    const bVal = b[sortField];
-    if (aVal < bVal) return sortDirection === "asc" ? -1 : 1;
-    if (aVal > bVal) return sortDirection === "asc" ? 1 : -1;
-    return 0;
-  });
-
-  // Filter data based on search
-  const filteredData = sortedData.filter((row) => {
-    if (!searchTerm) return true;
-    const fieldsToSearch = searchFields.length > 0 ? searchFields : Object.keys(row);
-    return fieldsToSearch.some((field) =>
-      String(row[field]).toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  });
-
-  // Pagination
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentData = filteredData.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-
-  const handleSearch = (value: string) => {
-    setSearchTerm(value);
-    setCurrentPage(1);
-  };
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
-  const handleEdit = (row: any) => {
-    if (basePath) {
-      router.push(`${basePath}/${row.id}/edit`);
-    }
-  };
-
-  const handleDelete = async (row: any) => {
-    if (!confirm(`Are you sure you want to delete ${row.name || row.title}? This action cannot be undone.`)) {
-      return;
-    }
-
-    if (customDelete) {
-      await customDelete(row.id);
-      setData(data.filter((item: any) => item.id !== row.id));
-    } else if (basePath) {
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}${basePath}/${row.id}`, {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-          },
-        });
-
-        if (response.ok) {
-          setData(data.filter((item: any) => item.id !== row.id));
-        } else {
-          alert("Failed to delete item");
-        }
-      } catch (error) {
-        console.error("Failed to delete:", error);
-        alert("An error occurred while deleting");
-      }
-    }
-  };
-
-  const handleStatusToggle = async (row: any) => {
-    const newStatus = row.active === "ACTIVE" ? "INACTIVE" : "ACTIVE";
-    
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}${basePath}/${row.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
-        body: JSON.stringify({ ...row, active: newStatus }),
-      });
-
-      if (response.ok) {
-        setData(data.map((item: any) => 
-          item.id === row.id ? { ...item, active: newStatus } : item
-        ));
-      }
-    } catch (error) {
-      console.error("Failed to update status:", error);
-    }
-  };
-
-  // Cell renderer based on column type
-  const renderCell = (column: Column, value: any, row: any) => {
-    switch (column.type) {
-      case 'image':
-        return (
-          <div className="relative w-10 h-10">
-            {value ? (
+  // Handle different types when no render function is provided
+  switch (header.type) {
+    case "image":
+      return (
+        <td className="px-6 py-4">
+          {value ? (
+            <div className="relative w-10 h-10">
               <Image
                 src={value}
-                alt={row.name || row.title || 'Image'}
+                alt={row?.name || column || "Image"}
                 fill
-                className="object-cover rounded-lg"
+                className="rounded-lg object-cover"
+                sizes="40px"
               />
-            ) : (
-              <div className="w-10 h-10 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center">
-                <span className="text-sm font-bold text-gray-400">
-                  {(row.name || row.title || '?').charAt(0).toUpperCase()}
-                </span>
-              </div>
-            )}
-          </div>
-        );
-      
-      case 'status':
-        const isActive = value === "ACTIVE" || value === true;
-        return (
-          <button
-            onClick={() => handleStatusToggle(row)}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all cursor-pointer ${
-              isActive
-                ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
-                : "bg-red-50 text-red-700 hover:bg-red-100 border border-red-200"
-            }`}
-          >
-            <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-red-500'}`} />
-            {value}
-          </button>
-        );
-      
-      case 'slug':
-        return (
-          <code className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-            /{value}
-          </code>
-        );
-      
-      case 'price':
-        return (
-          <span className="font-semibold text-gray-900">
-            ${Number(value).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            </div>
+          ) : (
+            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+              <InboxIcon size={16} className="text-gray-400" />
+            </div>
+          )}
+        </td>
+      );
+
+    case "badge":
+      return (
+        <td className="px-6 py-4">
+          <span className="inline-flex px-3 py-1 bg-gray-50 text-gray-600 rounded-full text-xs font-medium border border-gray-100">
+            {value ?? "-"}
           </span>
-        );
-      
-      case 'date':
-        return (
-          <span className="text-gray-500 text-sm">
-            {new Date(value).toLocaleDateString('en-US', { 
-              year: 'numeric', 
-              month: 'short', 
-              day: 'numeric' 
-            })}
-          </span>
-        );
-      
-      case 'badge':
-        const badgeColors: Record<string, string> = {
-          'HIGH': 'bg-red-100 text-red-700',
-          'MEDIUM': 'bg-yellow-100 text-yellow-700',
-          'LOW': 'bg-green-100 text-green-700',
-        };
-        return (
-          <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${badgeColors[value] || 'bg-gray-100 text-gray-700'}`}>
-            {value}
-          </span>
-        );
-      
-      default:
-        if (typeof value === 'string' && value.length > 50) {
-          return <span title={value}>{value.substring(0, 50)}...</span>;
-        }
-        return value;
+        </td>
+      );
+
+    case "date":
+      return (
+        <td className="px-6 py-4">
+          <p className="text-sm text-gray-800">
+            {value
+              ? new Date(value).toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })
+              : "-"}
+          </p>
+        </td>
+      );
+
+    case "text":
+    default:
+      return (
+        <td className="px-6 py-4">
+          <p className="text-sm text-gray-800">{value ?? "-"}</p>
+        </td>
+      );
+  }
+};
+
+const DefaultActions = ({ row, onEdit, onDelete }: ActionsSlotProps) => (
+  <td className="px-6 py-4">
+    <div className="flex justify-end gap-2">
+      {onEdit && (
+        <button
+          onClick={() => onEdit(row)}
+          className="border border-gray-200 p-2 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+          title="Edit"
+        >
+          <Pencil size={18} />
+        </button>
+      )}
+      {onDelete && (
+        <button
+          onClick={() => onDelete(row.id)}
+          className="border border-gray-200 p-2 rounded-lg cursor-pointer hover:bg-red-50 transition-colors"
+          title="Delete"
+        >
+          <Trash2 size={18} color="red" />
+        </button>
+      )}
+    </div>
+  </td>
+);
+
+const DefaultEmpty = () => (
+  <tr>
+    <td colSpan={100} className="text-center py-16">
+      <div className="flex flex-col items-center">
+        <InboxIcon className="w-16 h-16 text-gray-300" />
+        <p className="mt-4 text-gray-500 font-medium">No data found</p>
+        <p className="mt-1 text-sm text-gray-400">
+          Try adjusting your search or filters
+        </p>
+      </div>
+    </td>
+  </tr>
+);
+
+const DefaultLoading = () => (
+  <tr>
+    <td colSpan={100} className="text-center py-16">
+      <div className="flex flex-col items-center">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <p className="mt-4 text-gray-500">Loading data...</p>
+      </div>
+    </td>
+  </tr>
+);
+
+const DefaultPagination = ({
+  currentPage,
+  totalPages,
+  totalItems,
+  onPageChange,
+}: PaginationSlotProps) => {
+  const startItem = currentPage * 10 + 1;
+  const endItem = Math.min((currentPage + 1) * 10, totalItems);
+
+  // Generate page numbers to display
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    const maxVisible = 5;
+
+    if (totalPages <= maxVisible + 2) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 2) pages.push("...");
+
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+
+      for (let i = start; i <= end; i++) pages.push(i);
+
+      if (currentPage < totalPages - 1) pages.push("...");
+      pages.push(totalPages);
     }
+    return pages;
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header Section */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-            {description && <p className="text-gray-500 mt-1 text-sm">{description}</p>}
-          </div>
-          
-          <div className="flex items-center gap-3">
-            {showExport && data.length > 0 && (
-              <button
-                onClick={handleExport}
-                className="px-4 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition-all flex items-center gap-2 text-gray-700 font-medium"
-              >
-                <Download className="w-4 h-4" />
-                Export
-              </button>
-            )}
-            <button
-              onClick={handleAdd}
-              className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-5 py-2 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all flex items-center gap-2 font-medium shadow-sm hover:shadow-md"
-            >
-              <Plus className="w-4 h-4" />
-              {addButtonText}
-            </button>
-          </div>
-        </div>
-      </div>
+    <div className="flex items-center justify-between mt-6">
+      <p className="text-sm text-gray-400">
+        Showing{" "}
+        <span className="font-medium text-gray-600">{startItem}</span> to{" "}
+        <span className="font-medium text-gray-600">{endItem}</span> of{" "}
+        <span className="font-medium text-gray-600">{totalItems}</span> results
+      </p>
 
-      {/* Search and Filters Bar */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder={searchPlaceholder}
-              value={searchTerm}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 hover:bg-white transition-colors"
-            />
-          </div>
-          
-          <div className="flex gap-3">
-            <button
-              onClick={handleRefresh}
-              className="px-4 py-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all flex items-center gap-2 text-gray-600"
-            >
-              <RefreshCw className="w-4 h-4" />
-              Refresh
-            </button>
-          </div>
-        </div>
-      </div>
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => onPageChange(0)}
+          disabled={currentPage === 0}
+          className="p-2 rounded-lg text-gray-400 hover:text-gray-800 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <ChevronsLeft size={16} />
+        </button>
+        <button
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 0}
+          className="p-2 rounded-lg text-gray-400 hover:text-gray-800 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <ChevronLeft size={16} />
+        </button>
 
-      {/* Table Section */}
-      {filteredData.length === 0 ? (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-16 text-center">
-          <div className="max-w-md mx-auto">
-            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Search className="w-8 h-8 text-gray-400" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No data found</h3>
-            <p className="text-gray-500 mb-4">
-              {searchTerm ? "No results match your search criteria" : `No ${title.toLowerCase()} available yet`}
-            </p>
-            {searchTerm ? (
-              <button
-                onClick={() => handleSearch("")}
-                className="text-blue-600 hover:text-blue-700 font-medium"
-              >
-                Clear search
-              </button>
+        {getPageNumbers().map((page, index) => (
+          <div key={index}>
+            {typeof page === "string" ? (
+              <span className="px-1 text-gray-300">...</span>
             ) : (
               <button
-                onClick={handleAdd}
-                className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium"
+                onClick={() => onPageChange(page - 1)}
+                className={`w-8 h-8 rounded-lg text-sm font-medium ${
+                  currentPage === page - 1
+                    ? "bg-blue-600 text-white"
+                    : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
+                }`}
               >
-                <Plus className="w-4 h-4" />
-                Add your first {title.slice(0, -1).toLowerCase()}
+                {page}
               </button>
             )}
           </div>
-        </div>
-      ) : (
-        <>
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-                    {columns.map((column) => (
-                      <th
-                        key={column.key}
-                        onClick={() => column.sortable && handleSort(column.key)}
-                        className={`px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider ${
-                          column.sortable ? 'cursor-pointer hover:text-gray-900 select-none' : ''
-                        }`}
-                      >
-                        <div className="flex items-center gap-1">
-                          {column.label}
-                          {column.sortable && sortField === column.key && (
-                            <ChevronDown className={`w-3 h-3 transition-transform ${sortDirection === 'asc' ? 'rotate-180' : ''}`} />
-                          )}
-                        </div>
-                      </th>
-                    ))}
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {currentData.map((row, index) => (
-                    <tr key={row.id || index} className="hover:bg-gray-50 transition-colors group">
-                      {columns.map((column) => (
-                        <td
-                          key={column.key}
-                          className="px-6 py-4 whitespace-nowrap text-sm"
-                        >
-                          {renderCell(column, row[column.key], row)}
-                        </td>
-                      ))}
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => handleEdit(row)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors opacity-60 group-hover:opacity-100"
-                            title="Edit"
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(row)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-60 group-hover:opacity-100"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+        ))}
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-6 py-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="text-sm text-gray-500">
-                  Showing <span className="font-medium text-gray-700">{indexOfFirstItem + 1}</span> to{" "}
-                  <span className="font-medium text-gray-700">{Math.min(indexOfLastItem, filteredData.length)}</span> of{" "}
-                  <span className="font-medium text-gray-700">{filteredData.length}</span> results
-                </div>
-                
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 text-sm font-medium"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                    Previous
-                  </button>
-                  
-                  <div className="flex gap-1">
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      let pageNum;
-                      if (totalPages <= 5) {
-                        pageNum = i + 1;
-                      } else if (currentPage <= 3) {
-                        pageNum = i + 1;
-                      } else if (currentPage >= totalPages - 2) {
-                        pageNum = totalPages - 4 + i;
-                      } else {
-                        pageNum = currentPage - 2 + i;
-                      }
-                      
-                      return (
-                        <button
-                          key={pageNum}
-                          onClick={() => handlePageChange(pageNum)}
-                          className={`w-10 h-10 rounded-xl transition-all font-medium ${
-                            currentPage === pageNum
-                              ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-sm"
-                              : "border border-gray-200 text-gray-600 hover:bg-gray-50"
-                          }`}
-                        >
-                          {pageNum}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  
-                  <button
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="px-4 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 text-sm font-medium"
-                  >
-                    Next
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
+        <button
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage >= totalPages - 1}
+          className="p-2 rounded-lg text-gray-400 hover:text-gray-800 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <ChevronRight size={16} />
+        </button>
+        <button
+          onClick={() => onPageChange(totalPages - 1)}
+          disabled={currentPage >= totalPages - 1}
+          className="p-2 rounded-lg text-gray-400 hover:text-gray-800 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <ChevronsRight size={16} />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export function DataTable({
+  apiContext,
+  headers,
+  slots = {},
+  title,
+  description,
+  onAdd,
+  onEdit,
+  onDelete,
+  defaultPageSize = 10,
+}: DataTableProps) {
+  const [currentPage, setCurrentPage] = useState(0);
+  const [size, setSize] = useState(defaultPageSize);
+  const [search, setSearch] = useState("");
+  const [rows, setRows] = useState<any[]>([]);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const isInitialMount = useRef(true);
+
+  // Extract slot components with defaults
+  const {
+    Toolbar = DefaultToolbar,
+    Header = DefaultHeader,
+    Cell = DefaultCell,
+    Actions = DefaultActions,
+    Empty = DefaultEmpty,
+    Loading = DefaultLoading,
+    Pagination = DefaultPagination,
+  } = slots;
+
+  const { execute: fetchData, loading } = useApi(
+    apiContext.url,
+    apiContext.method,
+    {
+      onSuccess(data: any) {
+        setRows(data.content || data.data || []);
+        setTotalItems(data.totalElements || data.total || 0);
+        setTotalPages(
+          data.totalPages ||
+            Math.ceil((data.totalElements || data.total || 0) / size)
+        );
+        setError(null);
+      },
+      onError(error) {
+        console.error("Failed to fetch data:", error);
+        setError(error.message || "Failed to load data");
+      },
+    }
+  );
+
+  const searchFields = useMemo<string[]>(() => {
+    if (!headers || !headers.length) return [];
+    return headers
+      .filter((header) => header.type === "text" || header.type === undefined)
+      .map((header) => header.key);
+  }, [headers]);
+
+  const getParams = useCallback(() => {
+    const params: Record<string, string | number | boolean> = {
+      page: currentPage,
+      size: size,
+    };
+    if (search && searchFields.length > 0) {
+      params.search = search;
+    }
+    return params;
+  }, [currentPage, size, search, searchFields]);
+
+  const fetchPaginatedList = useCallback(async () => {
+    const params = getParams();
+    await fetchData({ params });
+  }, [fetchData, getParams]);
+
+  // Initial fetch
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      fetchPaginatedList();
+    }
+  }, []);
+
+  // Fetch when page or size changes
+  useEffect(() => {
+    if (!isInitialMount.current) {
+      fetchPaginatedList();
+    }
+  }, [currentPage, size]);
+
+  // Debounced search
+  useEffect(() => {
+    if (isInitialMount.current) return;
+
+    const timeoutId = setTimeout(() => {
+      setCurrentPage(0);
+      fetchPaginatedList();
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [search]);
+
+  const handleSearch = (value: string) => {
+    setSearch(value);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(Math.max(0, Math.min(page, totalPages - 1)));
+  };
+
+  return (
+    <div className="min-h-screen bg-white p-6">
+      <div className="mx-auto">
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-xl font-bold text-gray-900">{title}</h1>
+          {description && (
+            <p className="mt-1 text-sm text-gray-500">{description}</p>
           )}
-        </>
-      )}
+        </div>
+
+        {/* Toolbar Slot */}
+        <Toolbar search={search} onSearch={handleSearch} onAdd={onAdd} />
+
+        {/* Error State */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-red-500" />
+            <p className="text-sm text-red-700">{error}</p>
+            <button
+              onClick={fetchPaginatedList}
+              className="ml-auto text-sm text-red-600 hover:text-red-800 underline"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {/* Table */}
+        <div className="border border-gray-100 rounded-2xl overflow-hidden">
+          <table className="w-full">
+            {/* Header Slot */}
+            <Header headers={headers} />
+
+            {/* Body */}
+            <tbody className="divide-y divide-gray-50">
+              {loading ? (
+                <Loading />
+              ) : rows.length === 0 ? (
+                <Empty />
+              ) : (
+                rows.map((row, index) => (
+                  <tr
+                    key={row.id || index}
+                    className="hover:bg-gray-50/50 transition-colors"
+                  >
+                    {/* Cell Slots */}
+                    {headers.map((header) => (
+                      <Cell
+                        key={header.key}
+                        value={row[header.key]}
+                        row={row}
+                        column={header.key}
+                        header={header}
+                      />
+                    ))}
+
+                    {/* Actions Slot */}
+                    <Actions row={row} onEdit={onEdit} onDelete={onDelete} />
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination Slot */}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          onPageChange={handlePageChange}
+        />
+      </div>
     </div>
   );
 }
