@@ -60,7 +60,7 @@ export const CardListSlider = ({
   }
 
   return (
-    <div className=" shop-container border border-gray-100 shadow rounded">
+    <div className=" shop-container border border-gray-100  rounded-lg ">
       {title && (
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-2xl font-bold text-gray-800">{title}</h2>

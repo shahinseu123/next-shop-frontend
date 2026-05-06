@@ -28,7 +28,7 @@ export const ButtonPrimary = ({
     // Conditional classes based on variant
     const variantClasses = {
         // Your original solid button
-        solid: `text-white shadow-md hover:shadow-lg focus:ring-[${bgColor}]`,
+        solid: `text-white shadow-md rounded-md hover:shadow-lg focus:ring-[${bgColor}]`,
         // Like Vuetify's 'outlined'
         outline: `border-2 bg-transparent hover:bg-gray-50 focus:ring-[${bgColor}]`,
         // Like Vuetify's 'text' - NO background, NO shadow

@@ -2,7 +2,7 @@
 import { Category } from "@/type/shop";
 import { CategoryCard } from "./CategoryCard";
 import { CardListSlider } from "../utility/CartListSlider";
-
+import { Title } from "../utility/Title";
 
 interface CategoryCardListProps {
   categories: Array<Category>;
@@ -11,13 +11,12 @@ interface CategoryCardListProps {
   showArrows?: boolean;
 }
 
-export const CategoryCardList = ({ 
-  categories, 
+export const CategoryCardList = ({
+  categories,
   title = "Shop by Category",
   autoPlay = true,
-  showArrows = true
+  showArrows = true,
 }: CategoryCardListProps) => {
-  
   if (!categories || categories.length === 0) {
     return (
       <div className="text-center py-12 bg-gray-50 rounded-lg">
@@ -27,16 +26,22 @@ export const CategoryCardList = ({
   }
 
   return (
-    <CardListSlider 
-      autoPlay={autoPlay}
-      showArrows={showArrows}
-      autoPlaySpeed={4000}
-    >
-      {categories.map((category: Category) => (
-        <div key={category.id}>
-          <CategoryCard category={category} variant="featured" />
-        </div>
-      ))}
-    </CardListSlider>
+    <div className="my-4">
+      <Title title="CATEGORIES" size="text-xl" textColor="text-gray-600" />
+
+      <CardListSlider
+        autoPlay={autoPlay}
+        showArrows={showArrows}
+        autoPlaySpeed={4000}
+      >
+        {categories &&
+          categories.length &&
+          categories.map((category: Category) => (
+            <div key={category.id}>
+              <CategoryCard category={category} variant="featured" />
+            </div>
+          ))}
+      </CardListSlider>
+    </div>
   );
 };

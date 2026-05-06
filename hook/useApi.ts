@@ -20,15 +20,17 @@ interface ApiResponse<T = any> {
 }
 
 interface ExecuteOptions {
+  url?: string;  // Optional - only needed for dynamic URLs
   data?: any;
   params?: Record<string, string | number | boolean>;
   headers?: Record<string, string>;
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://spring-shop-backend-production.up.railway.app';
 
 export function useApi<T = any>(
-  endpoint: string,
+  endpoint: string,  // Required - set your main URL here
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' = 'GET',
   options: ApiOptions<T> = {}
 ) {
@@ -56,6 +58,12 @@ export function useApi<T = any>(
       setError(null);
 
       try {
+        // Use URL from execute if provided, otherwise use the initial endpoint
+        const targetUrl = executeOptions?.url || endpoint;
+
+        // Use method from execute options if provided, otherwise use initial method
+        const targetMethod = executeOptions?.method || method;
+
         // Extract data, params, and custom headers from options
         const bodyData = executeOptions?.data;
         const urlParams = executeOptions?.params;
@@ -67,10 +75,8 @@ export function useApi<T = any>(
           ...customHeaders,
         };
 
-        // Only add auth token if:
-        // 1. requiresAuth is true (default to true for non-login endpoints)
-        // 2. AND it's not the login endpoint
-        const shouldAddToken = options.requiresAuth !== false && !endpoint.includes('/authenticate');
+        // Determine if auth token should be added
+        const shouldAddToken = options.requiresAuth !== false && !targetUrl.includes('/authenticate');
         
         if (shouldAddToken) {
           const token = localStorage.getItem('access_token');
@@ -80,12 +86,12 @@ export function useApi<T = any>(
         }
 
         // Build URL with params
-        const url = buildUrl(endpoint, urlParams);
+        const url = buildUrl(targetUrl, urlParams);
         
         const fetchOptions: RequestInit = {
-          method,
+          method: targetMethod,
           headers,
-          ...(bodyData && { body: JSON.stringify(bodyData) }),
+          ...(bodyData && targetMethod !== 'GET' && { body: JSON.stringify(bodyData) }),
         };
 
         const response = await fetch(url, fetchOptions);
@@ -109,7 +115,7 @@ export function useApi<T = any>(
           if (options.onError) {
             options.onError(errorObj);
           }
-          throw errorObj; // Throw to allow try/catch in component
+          throw errorObj;
         }
 
         setData(responseData);
@@ -128,7 +134,7 @@ export function useApi<T = any>(
         if (options.onError) {
           options.onError(errorObj);
         }
-        throw errorObj; // Re-throw for component-level handling
+        throw errorObj;
       } finally {
         setLoading(false);
       }

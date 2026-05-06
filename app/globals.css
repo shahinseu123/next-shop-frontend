@@ -1,6 +1,8 @@
 @import "tailwindcss";
 
-
+/* Import slick slider CSS */
+@import "slick-carousel/slick/slick.css";
+@import "slick-carousel/slick/slick-theme.css";
 
 body {
   background: rgb(243, 243, 243);
@@ -18,10 +20,61 @@ body {
 .minwsearch{
   min-width: 300px !important;
 }
-.shop-container {
-  max-width: 1280px;
-  margin-left: auto;
-  margin-right: auto;
+
+
+
+
+/* Force slider container heights */
+.slider-container,
+.slider-container .slick-slider,
+.slider-container .slick-list,
+.slider-container .slick-track,
+.slider-container .slick-slide,
+.slider-container .slick-slide > div {
+  height: 500px !important;
+}
+
+/* Ensure the slide content takes full height */
+.slider-container .slick-slide > div {
+  height: 100% !important;
+}
+
+/* Remove default slick arrow backgrounds if causing issues */
+.slick-prev, 
+.slick-next {
+  z-index: 10;
+  background: rgba(0,0,0,0.5) !important;
+  border-radius: 50%;
+  width: 40px !important;
+  height: 40px !important;
+}
+
+.slick-prev:hover, 
+.slick-next:hover {
+  background: rgba(0,0,0,0.8) !important;
+}
+
+.slick-prev {
+  left: 10px !important;
+}
+
+.slick-next {
+  right: 10px !important;
+}
+
+/* Custom dots styling */
+.custom-dots {
+  bottom: 20px !important;
+}
+
+.custom-dots li button:before {
+  font-size: 12px !important;
+  color: white !important;
+  opacity: 0.5 !important;
+}
+
+.custom-dots li.slick-active button:before {
+  opacity: 1 !important;
 }
 
 @media (max-width: 640px) {

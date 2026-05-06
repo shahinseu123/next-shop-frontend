@@ -1,5 +1,6 @@
 'use server';
 
+
 import { cookies } from 'next/headers';
 
 // Types
@@ -77,7 +78,8 @@ export async function getBrands() {
     //   'Authorization': `Bearer ${token}`,
     // },
     next: {
-      revalidate: false, // Brands don't change often - revalidate daily
+      // cache: 'no-store'
+      // revalidate: false, // Brands don't change often - revalidate daily
       // tags: ['brands'],
     },
   });
@@ -93,16 +95,11 @@ export async function getBrands() {
 export async function getCategories() {
   // const token = (await cookies()).get('accessToken')?.value;
   
-  const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/categories`, {
-    // headers: {
-    //   'Authorization': `Bearer ${token}`,
-    // },
+  const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/categories/list`, {
     next: {
-      // revalidate: 86400,
-      // tags: ['categories'],
     },
   });
-  
+
   if (!response.ok) {
     throw new Error(`Failed to fetch categories: ${response.statusText}`);
   }
@@ -110,6 +107,24 @@ export async function getCategories() {
   return response.json();
 }
 
+export async function getSliders() {
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/sliders/list`, {
+      next: {
+        revalidate: 60 // Example: revalidate every minute
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch sliders: ${response.status} ${response.statusText}`);
+    }
+    
+    return response.json();
+  } catch (error) {
+    console.error('Error fetching sliders:', error);
+    throw error; // Or return a fallback
+  }
+}
 // Server Action: Get products by category
 export async function getProductsByCategory(categoryId: string, limit = 10) {
   return getProducts({ categoryId, limit });

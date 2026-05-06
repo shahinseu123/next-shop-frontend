@@ -14,14 +14,14 @@ export function CategoryCard({ category, variant = "default" }: CategoryCardProp
   const { id, name, slug, imageUrl, createdAt } = category;
   const [imageError, setImageError] = useState(false);
 
-  const getImageUrl = () => {
-    if (!imageUrl || imageError) return null;
-    if (imageUrl.startsWith('http')) return imageUrl;
-    const filename = imageUrl.split('/').pop();
-    return `https://spring-shop-backend-production.up.railway.app/upload/${filename}`;
-  };
+  // const getImageUrl = () => {
+  //   if (!imageUrl || imageError) return null;
+  //   if (imageUrl.startsWith('http')) return imageUrl;
+  //   const filename = imageUrl.split('/').pop();
+  //   return `https://spring-shop-backend-production.up.railway.app/upload/${filename}`;
+  // };
 
-  const imageSrc = getImageUrl();
+  const imageSrc = imageUrl;
 
   // Compact variant - Smaller card with readable text
   if (variant === "compact") {
@@ -37,6 +37,7 @@ export function CategoryCard({ category, variant = "default" }: CategoryCardProp
                   fill
                   className="object-cover transition-transform duration-150 group-hover:scale-105"
                   sizes="80px"
+                  unoptimized={true}
                   onError={() => setImageError(true)}
                 />
                 <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors" />
@@ -71,6 +72,7 @@ export function CategoryCard({ category, variant = "default" }: CategoryCardProp
                 className="object-cover transition-transform duration-500 group-hover:scale-105"
                 sizes="(max-width: 768px) 100vw, 50vw"
                 priority
+                unoptimized={true}
                 onError={() => setImageError(true)}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
@@ -107,6 +109,7 @@ export function CategoryCard({ category, variant = "default" }: CategoryCardProp
                 fill
                 className="object-cover"
                 sizes="48px"
+                unoptimized={true}
                 onError={() => setImageError(true)}
               />
             ) : (
@@ -136,6 +139,7 @@ export function CategoryCard({ category, variant = "default" }: CategoryCardProp
                 fill
                 className="object-cover transition-transform duration-500 group-hover:scale-110"
                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 16vw"
+                unoptimized={true}
                 onError={() => setImageError(true)}
               />
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />

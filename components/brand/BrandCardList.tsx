@@ -1,9 +1,9 @@
-// components/brand/BrandCardList.tsx
 "use client";
 
 import { Brand } from "@/type/shop";
 import { BrandCard } from "./BrandCard";
 import { CardListSlider } from "../utility/CartListSlider";
+import { Title } from "../utility/Title";
 
 interface BrandCardListProps {
   brands: Array<Brand>;
@@ -14,15 +14,14 @@ interface BrandCardListProps {
   deviceType?: string;
 }
 
-export const BrandCardList = ({ 
-  brands, 
+export const BrandCardList = ({
+  brands,
   title = "Shop by Brand",
   autoPlay = true,
   showArrows = true,
   variant = "compact",
-  deviceType
+  deviceType,
 }: BrandCardListProps) => {
-  
   if (!brands || brands.length === 0) {
     return (
       <div className="text-center py-12 bg-gray-50 rounded-lg">
@@ -32,18 +31,23 @@ export const BrandCardList = ({
   }
 
   return (
-    <CardListSlider 
-      // title={title}
-      autoPlay={autoPlay}
-      showArrows={showArrows}
-      autoPlaySpeed={4000}
-      deviceType={deviceType}
-    >
-      {brands.map((brand: Brand) => (
-        <div key={brand.id}>
-          <BrandCard brand={brand} variant={variant} />
-        </div>
-      ))}
-    </CardListSlider>
+    <div className="mt-4">
+      <Title title="BRANDS" size="text-xl" textColor="text-gray-600" />
+      <CardListSlider
+        // title={title}
+        autoPlay={autoPlay}
+        showArrows={showArrows}
+        autoPlaySpeed={4000}
+        deviceType={deviceType}
+      >
+        {brands &&
+          brands.length &&
+          brands.map((brand: Brand) => (
+            <div key={brand.id}>
+              <BrandCard brand={brand} variant={variant} />
+            </div>
+          ))}
+      </CardListSlider>
+    </div>
   );
 };

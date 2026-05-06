@@ -105,6 +105,7 @@ export default function DashboardLayout({
         { name: "Coupons", href: "/application/shop/admin/coupons", icon: Gift },
         { name: "Discount Rules", href: "/application/shop/admin/discounts", icon: DollarSign },
         { name: "Banners", href: "/application/shop/admin/banners", icon: ImageIcon },
+        { name: "Sliders", href: "/application/shop/admin/slider", icon: ImageIcon },
         { name: "Newsletter", href: "/application/shop/admin/newsletter", icon: MessageSquare },
       ],
     },

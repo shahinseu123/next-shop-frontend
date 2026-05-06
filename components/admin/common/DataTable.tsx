@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import Image from "next/image";
+import { TableSkeleton } from "./TableSkeleton";
 import { useApi } from "@/hook/useApi";
 import {
   Filter,
@@ -81,6 +82,7 @@ interface DataTableProps {
   onEdit?: (row: any) => void;
   onDelete?: (id: number) => void;
   defaultPageSize?: number;
+  refreshKey?: number;
 }
 
 // Default slot components
@@ -350,6 +352,7 @@ export function DataTable({
   onEdit,
   onDelete,
   defaultPageSize = 10,
+  refreshKey = 0
 }: DataTableProps) {
   const [currentPage, setCurrentPage] = useState(0);
   const [size, setSize] = useState(defaultPageSize);
@@ -427,7 +430,7 @@ export function DataTable({
     if (!isInitialMount.current) {
       fetchPaginatedList();
     }
-  }, [currentPage, size]);
+  }, [currentPage, size, refreshKey]);
 
   // Debounced search
   useEffect(() => {
@@ -452,13 +455,7 @@ export function DataTable({
   return (
     <div className="min-h-screen bg-white p-6">
       <div className="mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-xl font-bold text-gray-900">{title}</h1>
-          {description && (
-            <p className="mt-1 text-sm text-gray-500">{description}</p>
-          )}
-        </div>
+       
 
         {/* Toolbar Slot */}
         <Toolbar search={search} onSearch={handleSearch} onAdd={onAdd} />
@@ -486,7 +483,7 @@ export function DataTable({
             {/* Body */}
             <tbody className="divide-y divide-gray-50">
               {loading ? (
-                <Loading />
+                <TableSkeleton />
               ) : rows.length === 0 ? (
                 <Empty />
               ) : (

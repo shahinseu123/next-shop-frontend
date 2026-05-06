@@ -1,5 +1,6 @@
 import { Product } from "@/type/shop";
 import { ProductCard } from "./ProductCard";
+import { Title } from "../utility/Title";
 
 export const ProductCardList = ({ products }: { products: Product[] }) => {
   // Handle empty or undefined products array
@@ -14,13 +15,14 @@ export const ProductCardList = ({ products }: { products: Product[] }) => {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 my-5">
-      {products.map((product: Product, index: number) => (
-        <ProductCard
-          key={product.id}
-          product={product}
-        />
-      ))}
+    <div>
+      <Title title="PRODUCTS" size="text-2xl" textColor="text-gray-600" />
+
+      <div className=" rounded-lg shop-container grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 py-2">
+        {products.map((product: Product, index: number) => (
+          <ProductCard key={product.id} product={product} />
+        ))}
+      </div>
     </div>
   );
 };

@@ -4,6 +4,18 @@ export interface Brand {
     logoUrl: string,
     slug: null | string
 }
+export interface SliderType {
+  id: number;
+  title: string;
+  subtitle: string;
+  description: string;
+  imageUrl: string;
+  mobileImageUrl: string;
+  buttonText: string;
+  isActive: boolean;
+  createdAt: number[]; // [year, month, day, hour, minute, second, nanoseconds]
+  updatedAt: number[]; // [year, month, day, hour, minute, second, nanoseconds]
+}
 
 export interface Category {
   id: number;
