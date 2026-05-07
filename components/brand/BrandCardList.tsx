@@ -31,10 +31,9 @@ export const BrandCardList = ({
   }
 
   return (
-    <div className="mt-4">
-      <Title title="BRANDS" size="text-xl" textColor="text-gray-600" />
+    <div className="mt-4 mx-2">
       <CardListSlider
-        // title={title}
+        title={title}
         autoPlay={autoPlay}
         showArrows={showArrows}
         autoPlaySpeed={4000}

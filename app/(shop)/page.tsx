@@ -1,41 +1,59 @@
-import {
-  getBrands,
-  getCategories,
-  getProducts,
-  getSliders,
-} from "../actions/product";
 import { Suspense } from "react";
-import { CategoryCardList } from "@/components/category/CategoryCardList";
-import { BrandCardList } from "@/components/brand/BrandCardList";
-import { ProductCardList } from "@/components/product/ProductCardList";
-import SimpleSlider from "@/components/slider/SimpleSlider";
-import Sidebar from "@/components/sidebar/Sidebar";
+
+import CategorySection from "@/components/category/CategorySection";
+import BrandSection from "@/components/brand/BrandSection";
+import ProductSection from "@/components/product/ProductSection";
+import { SliderSkeleton } from "@/components/loader/SliderSkeleton";
+import { BrandsSkeleton } from "@/components/loader/BrandSkeleton";
+import { CategoriesSkeleton } from "@/components/loader/CategoriesSkeleton";
+import { ProductsSkeleton } from "@/components/loader/ProductsSkeleton";
+import SliderSection from "@/components/slider/SliderSection";
 export default async function Home({
   searchParams,
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const param = await searchParams;
-  const [sliders, products, categories, brands] = await Promise.all([
-    getSliders(),
-    getProducts(),
-    getCategories(),
-    getBrands(),
-  ]);
-  console.log(sliders);
-  // console.log(brands);
-  // console.log(categories);
-  // console.log(products);
+  const resolvedParams = await searchParams;
+
+  const brandIds = resolvedParams.brandId
+    ? Array.isArray(resolvedParams.brandId)
+      ? resolvedParams.brandId
+      : [resolvedParams.brandId]
+    : [];
+
+  const categoryName =
+    typeof resolvedParams.category === "string"
+      ? resolvedParams.category
+      : undefined;
+
+  const query =
+    typeof resolvedParams.query === "string" ? resolvedParams.query : undefined;
   return (
     <>
-        <div className="mb-4 p-4 md:p-6">
-          <Suspense fallback={"Loading..."}>
-            <SimpleSlider sliders={sliders} />
-            <BrandCardList brands={brands} />
-            <CategoryCardList categories={categories} />
-            <ProductCardList products={products.content} />
+      <div className="">
+        <div className="">
+          <Suspense fallback={<SliderSkeleton />}>
+            <SliderSection />
+          </Suspense>
+
+          <Suspense fallback={<BrandsSkeleton />}>
+            <BrandSection />
+          </Suspense>
+
+          <Suspense fallback={<CategoriesSkeleton />}>
+            <CategorySection />
+          </Suspense>
+
+          <Suspense fallback={<ProductsSkeleton />}>
+            <ProductSection
+              categoryName={categoryName}
+              brandIds={brandIds}
+              query={query}
+              key={`${categoryName}-${brandIds.join(",")}-${query}`}
+            />
           </Suspense>
         </div>
+      </div>
     </>
   );
 }

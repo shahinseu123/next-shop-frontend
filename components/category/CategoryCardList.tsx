@@ -1,8 +1,6 @@
-// components/category/CategoryCardList.tsx
 import { Category } from "@/type/shop";
 import { CategoryCard } from "./CategoryCard";
 import { CardListSlider } from "../utility/CartListSlider";
-import { Title } from "../utility/Title";
 
 interface CategoryCardListProps {
   categories: Array<Category>;
@@ -26,10 +24,10 @@ export const CategoryCardList = ({
   }
 
   return (
-    <div className="my-4">
-      <Title title="CATEGORIES" size="text-xl" textColor="text-gray-600" />
+    <div className="my-4 mx-2">
 
       <CardListSlider
+        title="Shop by Category"
         autoPlay={autoPlay}
         showArrows={showArrows}
         autoPlaySpeed={4000}

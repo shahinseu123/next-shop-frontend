@@ -5,12 +5,13 @@
 @import "slick-carousel/slick/slick-theme.css";
 
 body {
-  background: rgb(243, 243, 243);
+  box-sizing: border-box;
+background: rgb(241, 240, 240);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
 .shop-container {
-   max-width: 1200px;
+   max-width: 1000px;
     margin: 0 auto;
 }
 .active{
@@ -22,7 +23,30 @@ body {
 }
 
 
+/* Ultra thin - 1px width */
+::-webkit-scrollbar {
+  width: 2px;
+  height: 2px;
+}
 
+::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;  /* Lighter gray */
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;  /* Medium gray on hover */
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db #f3f4f6;
+}
 
 /* Force slider container heights */
 .slider-container,
@@ -75,6 +99,37 @@ body {
 
 .custom-dots li.slick-active button:before {
   opacity: 1 !important;
+}
+
+/* globals.css */
+:root {
+  --sidebar-width: 250px;
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --sidebar-width: clamp(200px, 20%, 280px);
+  }
+}
+
+.sidebar-fixed {
+  width: var(--sidebar-width);
+}
+
+.main-content {
+  margin-left: var(--sidebar-width);
+}
+
+/* Responsive behavior */
+@media (max-width: 1023px) {
+  .sidebar-fixed {
+    width: 100%;
+    position: relative;
+  }
+  
+  .main-content {
+    margin-left: 0;
+  }
 }
 
 @media (max-width: 640px) {

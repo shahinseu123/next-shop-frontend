@@ -20,9 +20,9 @@ export default function SimpleSlider({ sliders }: { sliders: SliderType[] }) {
   };
 
   return (
-    <div className="slider-container rounded-lg overflow-hidden">
+    <div>
       <Slider {...settings}>
-        {sliders?.map((slide) => (
+        {sliders && sliders.length && sliders?.map((slide) => (
           <SliderItem key={slide.id} slide={slide} />
         ))}
       </Slider>

@@ -3,7 +3,7 @@ import Image from "next/image";
 
 export const SliderItem = ({ slide }: { slide: SliderType }) => {
   return (
-    <div className="relative w-full h-[500px] overflow-hidden">
+    <div className="relative w-full h-[350px] overflow-hidden">
       <div className="hidden md:block relative w-full h-full">
         <Image
           src={slide.imageUrl}

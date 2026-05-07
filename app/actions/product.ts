@@ -1,31 +1,40 @@
 'use server';
 
-
 import { cookies } from 'next/headers';
 
 // Types
 type ProductFilters = {
   categoryId?: string;
-  brandId?: string;
+  categoryName?: string;
+  brandIds?: string[];
   minPrice?: number;
   maxPrice?: number;
   search?: string;
+  query?: string;
   page?: number;
-  limit?: number;
+  size?: number;
 };
 
-// Server Action: Fetch products with filters
+// Server Action: Fetch products with filters (handles all cases)
 export async function getProducts(filters: ProductFilters = {}) {
   const token = (await cookies()).get('token')?.value;
   
   const searchParams = new URLSearchParams();
+  
   if (filters.categoryId) searchParams.append('categoryId', filters.categoryId);
-  if (filters.brandId) searchParams.append('brandId', filters.brandId);
+  if (filters.categoryName) searchParams.append('categoryName', filters.categoryName);
+  
+  // Handle multiple brandIds
+  if (filters.brandIds && filters.brandIds.length > 0) {
+    filters.brandIds.forEach(id => searchParams.append('brandId', id));
+  }
+  
   if (filters.minPrice) searchParams.append('minPrice', filters.minPrice.toString());
   if (filters.maxPrice) searchParams.append('maxPrice', filters.maxPrice.toString());
   if (filters.search) searchParams.append('search', filters.search);
-  if (filters.page) searchParams.append('page', filters.page.toString());
-  if (filters.limit) searchParams.append('limit', filters.limit.toString());
+  if (filters.query) searchParams.append('query', filters.query);
+  if (filters.page !== undefined) searchParams.append('page', filters.page.toString());
+  if (filters.size !== undefined) searchParams.append('size', filters.size.toString());
   
   const response = await fetch(
     `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/products?${searchParams.toString()}`,
@@ -107,6 +116,7 @@ export async function getCategories() {
   return response.json();
 }
 
+// Server Action: Get sliders
 export async function getSliders() {
   try {
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/sliders/list`, {
@@ -124,13 +134,4 @@ export async function getSliders() {
     console.error('Error fetching sliders:', error);
     throw error; // Or return a fallback
   }
-}
-// Server Action: Get products by category
-export async function getProductsByCategory(categoryId: string, limit = 10) {
-  return getProducts({ categoryId, limit });
-}
-
-// Server Action: Get products by brand
-export async function getProductsByBrand(brandId: string, limit = 10) {
-  return getProducts({ brandId, limit });
 }

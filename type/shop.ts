@@ -23,6 +23,7 @@ export interface Category {
   parentId: number | null;
   slug: string;
   imageUrl: string;
+  subCategories: Category[]
   createdAt: number[] | string; // Handle both array and string until backend is fixed
 }
 export interface Product {
