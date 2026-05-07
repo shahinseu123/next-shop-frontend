@@ -21,22 +21,16 @@ import Link from "next/link";
 import Image from "next/image";
 import LogoImage from "@/public/logo.png";
 import { useState } from "react";
+import SearchInput from "./SearchInput";
 
 export const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [searchFocused, setSearchFocused] = useState(false);
-  const [searchValue, setSearchValue] = useState("");
+
   
   const handleClick = () => {
     console.log("Button clicked");
   };
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (searchValue.trim()) {
-      console.log("Searching for:", searchValue);
-    }
-  };
 
   const navLinks = [
     { name: "Home", href: "/", icon: <Home size={14} /> },
@@ -126,30 +120,8 @@ export const Header = () => {
             </Link>
 
             {/* Search Bar - Centered */}
-            <div className="flex-1 max-w-2xl mx-4">
-              <form onSubmit={handleSearch} className="relative">
-                <div className={`relative transition-all duration-300 ${searchFocused ? 'shadow-lg' : ''}`}>
-                  <input
-                    type="text"
-                    placeholder="Search products..."
-                    value={searchValue}
-                    onChange={(e) => setSearchValue(e.target.value)}
-                    onFocus={() => setSearchFocused(true)}
-                    onBlur={() => setSearchFocused(false)}
-                    className="w-full pl-10 pr-28 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-200 transition-all bg-white text-gray-900 placeholder-gray-400"
-                  />
-                  <Search className="absolute left-3 top-3 text-gray-400" size={18} />
-                  <button 
-                    type="submit"
-                    className="absolute right-1.5 top-1.5 px-4 py-1.5 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-all text-xs font-medium flex items-center gap-1.5"
-                  >
-                    <Search size={12} />
-                    <span>Search</span>
-                  </button>
-                </div>
-              </form>
-            </div>
-
+            <SearchInput />
+           
             {/* Contact & Cart */}
             <div className="flex items-center gap-4">
               {/* Call Support */}

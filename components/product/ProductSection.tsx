@@ -16,7 +16,6 @@ export default async function ProductSection({
   page = 0,
   size = 20,
 }: ProductSectionProps) {
-  // Single function handles all cases - with or without params
   const products = await getProducts({
     categoryName,
     brandIds,
@@ -24,7 +23,6 @@ export default async function ProductSection({
     page,
     size
   });
-  console.log("brandIds", brandIds)
 
   return <ProductCardList title="Products" products={products.content} />;
 }

@@ -40,6 +40,27 @@ export default function Sidebar() {
     data: brandsList,
   } = useApi<Brand[]>("/api/v1/brands/list");
 
+  // Initialize selectedBrands from URL params on mount
+  useEffect(() => {
+    const brandIdsFromUrl = searchParams.getAll("brandIds");
+    if (brandIdsFromUrl.length > 0) {
+      setSelectedBrands(brandIdsFromUrl);
+    }
+  }, []);
+
+  // Update URL when selectedBrands changes
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("brandIds");
+    
+    if (selectedBrands.length > 0) {
+      selectedBrands.forEach((id) => params.append("brandIds", id));
+    }
+    
+    const queryString = params.toString();
+    router.push(`${pathname}${queryString ? `?${queryString}` : ''}`, { scroll: false });
+  }, [selectedBrands]); // Only runs when selectedBrands changes
+
   const toggleCategory = (categoryId: string) => {
     setExpandedCategories((prev) =>
       prev.includes(categoryId)
@@ -54,22 +75,7 @@ export default function Sidebar() {
         ? prev.filter((id) => id !== brandId)
         : [...prev, brandId],
     );
-    createQueryString(brandId);
   };
-
-  const createQueryString = useCallback(
-    (value: string) => {
-      // setValues(value)
-      const params = new URLSearchParams(searchParams.toString());
-      params.delete("brandIds");
-      selectedBrands.forEach((brandId) => {
-        params.append("brandIds", brandId);
-      });
-      // params.set("max-price", value[1].toString());
-      router.push(`?${params.toString()}`, { scroll: false });
-    },
-    [searchParams, pathname, router],
-  );
 
   const handleReset = () => {
     setPriceRange([0, 1000]);
