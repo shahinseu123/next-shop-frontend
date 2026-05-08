@@ -13,18 +13,16 @@ export default function SearchBar() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    // const params = new URLSearchParams(searchParams.toString());
+    // if (searchValue.trim()) {
+    //   params.set("query", searchValue.trim());
+    // } else {
+    //   params.delete("query");
+    // }
     
-    const params = new URLSearchParams(searchParams.toString());
-    
-    if (searchValue.trim()) {
-      params.set("query", searchValue.trim());
-      console.log("Searching for:", searchValue);
-    } else {
-      params.delete("query");
-    }
-    
-    const queryString = params.toString();
-    router.push(`${pathname}${queryString ? `?${queryString}` : ''}`, { scroll: false });
+    // const queryString = params.toString();
+    // router.push(`${pathname}${queryString ? `?${queryString}` : ''}`, { scroll: false });
+    router.push(`/search?search=${searchValue.trim()}`)
   };
 
   return (

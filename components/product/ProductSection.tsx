@@ -4,7 +4,7 @@ import { ProductCardList } from "./ProductCardList";
 interface ProductSectionProps {
   categoryName?: string;
   brandIds?: string[];
-  query?: string;
+  search?: string;
   page?: number;
   size?: number;
 }
@@ -12,14 +12,14 @@ interface ProductSectionProps {
 export default async function ProductSection({
   categoryName,
   brandIds = [],
-  query,
+  search,
   page = 0,
   size = 20,
 }: ProductSectionProps) {
   const products = await getProducts({
     categoryName,
     brandIds,
-    query,
+    search,
     page,
     size
   });

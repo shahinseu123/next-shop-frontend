@@ -246,7 +246,7 @@ export default function Sidebar() {
                       </div>
                       {category.subCategories &&
                         category.subCategories.length > 0 &&
-                        expandedCategories.includes(category.id) && (
+                        expandedCategories.includes(category.id as unknown as string) && (
                           <div className="ml-4 mt-1 space-y-1 border-l border-gray-100 pl-3">
                             {category.subCategories.map((sub) => (
                               <Link
