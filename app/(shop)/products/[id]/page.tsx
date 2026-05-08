@@ -1,7 +1,23 @@
-export default function ProductDetails() {
-    return (
-        <>
-          <h1>product details</h1>
-        </>
-    )
+
+import ProductDetailsContent from "@/components/product/ProductDetailsContent"
+import ProductDeatilsSkeleton from "@/components/loader/ProductDetailsSkeleton"
+import { Suspense } from "react"
+interface ProductDetailsProps {
+  params: Promise<{
+    id: string
+  }>
+}
+
+export default async function ProductDetails({ params }: ProductDetailsProps) {
+  const { id } = await params
+  const productId = parseInt(id)
+  
+  
+  return (
+    <>
+      <Suspense fallback={<ProductDeatilsSkeleton />}>
+        <ProductDetailsContent productId={productId} />
+      </Suspense>
+    </>
+  )
 }

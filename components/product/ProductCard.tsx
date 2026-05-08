@@ -2,6 +2,7 @@
 import { Product } from "@/type/shop";
 import { ShoppingCart, Heart } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
 
 export const ProductCard = ({ product }: { product: Product }) => {
@@ -28,65 +29,68 @@ export const ProductCard = ({ product }: { product: Product }) => {
 
   return (
     <div 
-      className="group relative rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer max-w-[280px] flex flex-col "
+      className="group relative rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300 max-w-[280px] flex flex-col"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Image Section */}
-      <div className="relative overflow-hidden bg-gray-100 aspect-square">
-        <Image
-          width={280}
-          height={280}
-          src={imageUrl}
-          alt={product.name}
-          unoptimized={true}
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-        />
-        
-        {/* Tag Badge - Top Left (Only if tag exists) */}
-        {/* {tag && (
-          <div className="absolute top-0 left-0 z-10">
-            <div className="relative">
-              <div className={`bg-gradient-to-r ${tag.bgGradient} text-white px-2.5 py-1 rounded-br-md shadow-md flex items-center gap-1`}>
-                <span className="text-xs font-bold">{tag.icon}</span>
-                <span className="text-xs font-bold">{tag.text}</span>
-              </div>
-              <div className="absolute -bottom-1.5 left-0 w-0 h-0 border-l-[6px] border-l-transparent border-t-[6px]" 
-                   style={{ borderTopColor: tag.color }} />
-            </div>
-          </div>
-        )} */}
-        
-        {/* Discount Badge - Top Right (Only if discount exists) */}
-        {hasDiscount && (
-          <div className="absolute top-2 right-2 z-10">
-            <div className="bg-gradient-to-r from-red-500 to-red-600 text-white px-2 py-0.5 rounded-full shadow-md flex items-center gap-1">
-              <span className="text-[10px] font-bold">⚡</span>
-              <span className="text-[10px] font-bold">-{discountPercentage}%</span>
-            </div>
-          </div>
-        )}
-        
-        {/* Wishlist Button - Bottom Right */}
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            setIsWishlisted(!isWishlisted);
-          }}
-          className="absolute bottom-2 right-2 bg-white/90 backdrop-blur-sm p-1.5 rounded-full shadow-md hover:bg-white transition-all duration-200 z-10"
-        >
-          <Heart 
-            className={`w-4 h-4 transition-colors duration-200 ${
-              isWishlisted 
-                ? 'fill-red-500 text-red-500' 
-                : 'text-gray-600 hover:text-red-500'
-            }`}
+      {/* Image Section with Link */}
+      <Link href={`/products/${product.id}`} className="block">
+        <div className="relative overflow-hidden bg-gray-100 aspect-square">
+          <Image
+            width={280}
+            height={280}
+            src={imageUrl}
+            alt={product.name}
+            unoptimized={true}
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
           />
-        </button>
-      </div>
+          
+          {/* Tag Badge - Top Left (Only if tag exists) */}
+          {/* {tag && (
+            <div className="absolute top-0 left-0 z-10">
+              <div className="relative">
+                <div className={`bg-gradient-to-r ${tag.bgGradient} text-white px-2.5 py-1 rounded-br-md shadow-md flex items-center gap-1`}>
+                  <span className="text-xs font-bold">{tag.icon}</span>
+                  <span className="text-xs font-bold">{tag.text}</span>
+                </div>
+                <div className="absolute -bottom-1.5 left-0 w-0 h-0 border-l-[6px] border-l-transparent border-t-[6px]" 
+                     style={{ borderTopColor: tag.color }} />
+              </div>
+            </div>
+          )} */}
+          
+          {/* Discount Badge - Top Right (Only if discount exists) */}
+          {hasDiscount && (
+            <div className="absolute top-2 right-2 z-10">
+              <div className="bg-gradient-to-r from-red-500 to-red-600 text-white px-2 py-0.5 rounded-full shadow-md flex items-center gap-1">
+                <span className="text-[10px] font-bold">⚡</span>
+                <span className="text-[10px] font-bold">-{discountPercentage}%</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </Link>
       
-      {/* Product Details - Transparent Background */}
-      <div className="pt-3 space-y-1.5 bg-transparent">
+      {/* Wishlist Button - Bottom Right (outside Link to remain interactive) */}
+      <button
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsWishlisted(!isWishlisted);
+        }}
+        className="absolute bottom-[140px] right-2 bg-white/90 backdrop-blur-sm p-1.5 rounded-full shadow-md hover:bg-white transition-all duration-200 z-10"
+      >
+        <Heart 
+          className={`w-4 h-4 transition-colors duration-200 ${
+            isWishlisted 
+              ? 'fill-red-500 text-red-500' 
+              : 'text-gray-600 hover:text-red-500'
+          }`}
+        />
+      </button>
+      
+      {/* Product Details - with Link */}
+      <Link href={`/products/${product.id}`} className="block pt-3 space-y-1.5 bg-transparent">
         {/* Product Title & Brand in one line */}
         <div className="flex items-baseline justify-between gap-2">
           <h3 className="font-semibold text-gray-800 text-xs line-clamp-1 hover:text-blue-600 transition-colors flex-1">
@@ -115,15 +119,15 @@ export const ProductCard = ({ product }: { product: Product }) => {
             </>
           )}
         </div>
-        
-        {/* Add to Cart Button - Gray outline */}
-        <button 
-          className="w-full mt-2 bg-transparent border border-gray-300 text-gray-700 py-1.5 rounded-md font-medium text-sm flex items-center justify-center gap-1.5 hover:bg-gray-700 hover:text-white hover:border-gray-700 transition-all duration-200"
-        >
-          <ShoppingCart className="w-3.5 h-3.5" />
-          Add to Cart
-        </button>
-      </div>
+      </Link>
+      
+      {/* Add to Cart Button - outside Link to remain interactive */}
+      <button 
+        className="w-full mt-2 bg-transparent border border-gray-300 text-gray-700 py-1.5 rounded-md font-medium text-sm flex items-center justify-center gap-1.5 hover:bg-gray-700 hover:text-white hover:border-gray-700 transition-all duration-200"
+      >
+        <ShoppingCart className="w-3.5 h-3.5" />
+        Add to Cart
+      </button>
     </div>
   );
 };

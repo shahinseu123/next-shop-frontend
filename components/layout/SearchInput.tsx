@@ -43,7 +43,7 @@ export default function SearchBar() {
           <Search className="absolute left-3 top-3 text-gray-400" size={18} />
           <button
             type="submit"
-            className="absolute right-1.5 top-1.5 px-4 py-1.5 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-all text-xs font-medium flex items-center gap-1.5"
+            className="absolute cursor-pointer right-1.5 top-1.5 px-4 py-1.5 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-all text-xs font-medium flex items-center gap-1.5"
           >
             <Search size={12} />
             <span>Search</span>

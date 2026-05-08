@@ -5,6 +5,7 @@ interface ProductSectionProps {
   categoryName?: string;
   brandIds?: string[];
   search?: string;
+  query?: string;
   page?: number;
   size?: number;
 }
@@ -13,6 +14,7 @@ export default async function ProductSection({
   categoryName,
   brandIds = [],
   search,
+  query,
   page = 0,
   size = 20,
 }: ProductSectionProps) {

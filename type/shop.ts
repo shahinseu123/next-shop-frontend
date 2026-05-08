@@ -26,6 +26,34 @@ export interface Category {
   subCategories: Category[]
   createdAt: number[] | string; // Handle both array and string until backend is fixed
 }
+export interface ProductDetails {
+  name: string
+  id: number
+  shortDescription: string
+  longDescription: string
+  brandId: number
+  mrp: number
+  discountPercentage: number
+  quantityInStock: number
+  discountPrice: number
+  sellingPrice: number
+  imageUrls: string[]
+  categoryId: number
+  isActive: number
+  thumbnailUrl: string
+  reviewCount: number
+  averageRating: number
+  stockStatus: string | null
+  availabilityStatus: string | null
+  isFeatured: number
+  isNewArrival: number
+  sku: string
+  brandLogoUrl: string
+  categoryName: string
+  brandName: string
+  categorySlug: string
+}
+
 export interface Product {
   id: number;
   name: string;

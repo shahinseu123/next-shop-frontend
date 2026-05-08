@@ -58,10 +58,10 @@ export async function getProducts(filters: ProductFilters = {}) {
 }
 
 // Server Action: Get single product
-export async function getProduct(id: string) {
+export async function getProduct(id: number) {
   const token = (await cookies()).get('accessToken')?.value;
   
-  const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/products/${id}`, {
+  const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/products/details/${id}`, {
     // headers: {
     //   'Authorization': `Bearer ${token}`,
     // },
