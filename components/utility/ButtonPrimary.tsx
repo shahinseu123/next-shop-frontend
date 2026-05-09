@@ -2,7 +2,8 @@ interface Props {
     title: string;
     bgColor?: string; // Used for solid background OR text color in 'text' variant
     icon?: React.ReactNode;
-    onClick: () => void;
+    disabled?:boolean;
+    onClick?: () => void;
     variant?: 'solid' | 'outline' | 'text'; // 'text' is the key variant from Vuetify
     size?: 'sm' | 'md' | 'lg';
 }

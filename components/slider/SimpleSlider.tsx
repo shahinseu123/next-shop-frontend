@@ -23,7 +23,7 @@ export default function SimpleSlider({ sliders }: { sliders: SliderType[] }) {
     <div>
       <Slider {...settings}>
         {sliders && sliders.length && sliders?.map((slide) => (
-          <SliderItem key={slide.id} slide={slide} />
+          <SliderItem key={slide.id} slide={slide} showContent={false} />
         ))}
       </Slider>
     </div>

@@ -9,7 +9,6 @@ export default function ShopLayout({
 }>) {
   return (
     <div className="lg:flex" style={{ overflowX: 'hidden' }}>
-      {/* Left Sidebar - Fixed */}
       <aside 
         className="lg:fixed lg:left-0 lg:top-0 lg:h-screen overflow-y-auto bg-gray-50 " 
         style={{ width: 'clamp(200px, 20%, 280px)', zIndex: 40 }}
@@ -17,7 +16,6 @@ export default function ShopLayout({
         <Sidebar />
       </aside>
       
-      {/* Right Side */}
       <div 
         className="flex-1" 
         style={{ 

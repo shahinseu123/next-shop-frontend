@@ -7,21 +7,76 @@ import { useState } from "react";
 
 interface CategoryCardProps {
   category: Category;
-  variant?: "default" | "compact" | "featured" | "minimal";
+  variant?: "default" | "compact" | "featured" | "minimal" | "pinterest";
 }
 
 export function CategoryCard({ category, variant = "default" }: CategoryCardProps) {
-  const { id, name, slug, imageUrl, createdAt } = category;
+  const { id, name, slug, imageUrl } = category;
   const [imageError, setImageError] = useState(false);
-
-  // const getImageUrl = () => {
-  //   if (!imageUrl || imageError) return null;
-  //   if (imageUrl.startsWith('http')) return imageUrl;
-  //   const filename = imageUrl.split('/').pop();
-  //   return `https://spring-shop-backend-production.up.railway.app/upload/${filename}`;
-  // };
+  const [isHovered, setIsHovered] = useState(false);
 
   const imageSrc = imageUrl;
+
+  // Pinterest-style variant (masonry layout)
+  if (variant === "pinterest") {
+    // Use deterministic height based on category ID
+    const getHeight = () => {
+      const heights = [280, 320, 360, 400, 340, 380, 300, 350];
+      return heights[id % heights.length];
+    };
+    
+    const height = getHeight();
+
+    return (
+      <Link href={`/categories/${slug}`} className="group block">
+        <div 
+          className="relative w-full rounded-xl overflow-hidden bg-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+          style={{ height: `${height}px` }}
+        >
+          {imageSrc && !imageError ? (
+            <>
+              <Image
+                src={imageSrc}
+                alt={name}
+                fill
+                className={`object-cover transition-transform duration-500 ${
+                  isHovered ? 'scale-105' : 'scale-100'
+                }`}
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 16vw"
+                unoptimized={true}
+                onError={() => setImageError(true)}
+              />
+              
+              {/* Dark overlay on hover */}
+              <div className={`absolute inset-0 bg-black/30 transition-opacity duration-300 ${
+                isHovered ? 'opacity-100' : 'opacity-0'
+              }`} />
+              
+              {/* Category name overlay (bottom) */}
+              <div className={`absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 via-black/40 to-transparent transition-all duration-300 ${
+                isHovered ? 'translate-y-0' : 'translate-y-2'
+              }`}>
+                <h3 className="text-white font-semibold text-base line-clamp-2">
+                  {name}
+                </h3>
+                <p className={`text-white/70 text-xs mt-1 transition-all duration-300 ${
+                  isHovered ? 'opacity-100' : 'opacity-0'
+                }`}>
+                  Explore Collection →
+                </p>
+              </div>
+            </>
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-200 to-gray-300">
+              <span className="text-3xl font-bold text-gray-400">{name.charAt(0)}</span>
+            </div>
+          )}
+        </div>
+      </Link>
+    );
+  }
 
   // Compact variant - Smaller card with readable text
   if (variant === "compact") {

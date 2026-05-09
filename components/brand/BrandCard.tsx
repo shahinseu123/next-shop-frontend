@@ -22,46 +22,51 @@ export function BrandCard({
   const { id, name, logoUrl, slug } = brand;
   const linkUrl = href || (slug ? `/brands/${slug}` : `/brands/${id}`);
 
-  // const getImageUrl = () => {
-  //   if (!logoUrl) return null;
-  //   return `https://spring-shop-backend-production.up.railway.app${logoUrl}`;
-  // };
-
   const formatBrandName = (name: string) => {
     return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
   };
 
-  // Logo-only variant
-  if (variant === "logo-only") {
-    return (
-      <Link href={linkUrl} className="group block">
-        <div className="flex flex-col items-center p-4 rounded-2xl bg-white hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1">
-          <div className="relative w-20 h-20 rounded-full bg-gradient-to-br from-gray-50 to-gray-100 shadow-md overflow-hidden group-hover:shadow-xl transition-all duration-300">
-            {logoUrl ? (
+
+if (variant === "logo-only") {
+  return (
+    <Link href={linkUrl} className="group block">
+      <div className="flex flex-col items-center  bg-white hover:bg-gray-50/50 transition-all duration-300 ">
+        <div className="relative w-full aspect-square rounded-lg border border-gray-200 bg-transparent overflow-hidden transition-all duration-300 group-hover:border-indigo-300 group-hover:shadow-sm">
+          {logoUrl ? (
+            <>
               <Image
-                src={logoUrl!}
+                src={logoUrl}
                 alt={name}
                 unoptimized={true}
                 fill
-                className="object-contain p-2 group-hover:scale-110 transition-transform duration-300"
-                sizes="80px"
+                className="object-contain p-3 group-hover:scale-105 transition-transform duration-300"
+                sizes="(max-width: 640px) 150px, 180px"
               />
-            ) : (
-              <div className="flex items-center justify-center h-full bg-gradient-to-br from-blue-500 to-indigo-600">
-                <span className="text-white font-bold text-xl">
-                  {name.charAt(0)}
-                </span>
-              </div>
-            )}
-          </div>
-          <span className="mt-3 text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
-            {formatBrandName(name)}
-          </span>
+              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700" />
+            </>
+          ) : (
+            <div className="flex items-center justify-center h-full bg-gray-50">
+              <span className="text-gray-400 font-light text-2xl tracking-wide">
+                {name.charAt(0)}
+              </span>
+            </div>
+          )}
         </div>
-      </Link>
-    );
-  }
-
+        
+        <div className="mt-3 text-center">
+          <h4 className="text-xs font-light tracking-wide text-gray-600 uppercase group-hover:text-indigo-600 transition-colors duration-300">
+            {formatBrandName(name)}
+          </h4>
+          <div className="flex items-center justify-center gap-1 mt-1.5 opacity-0 group-hover:opacity-100 transition-all duration-300">
+            <span className="w-1 h-1 bg-indigo-400 rounded-full" />
+            <span className="w-1 h-1 bg-indigo-400 rounded-full" />
+            <span className="w-1 h-1 bg-indigo-400 rounded-full" />
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
   // Compact variant
   if (variant === "compact") {
     return (
@@ -181,10 +186,9 @@ export function BrandCard({
     <Link href={linkUrl} className="group block">
       <div className="relative bg-white/80 backdrop-blur-sm rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-gray-100">
         {/* Animated Gradient Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-indigo-50 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
+        <div className="absolute inset-0  from-blue-50 via-white to-indigo-50 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
         {/* Image Container with Overlay */}
-        <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+        <div className="relative h-48  from-gray-100 to-gray-200 overflow-hidden">
           {logoUrl ? (
             <>
               <Image
@@ -196,11 +200,11 @@ export function BrandCard({
                 sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
               />
               {/* Shine Effect */}
-              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-1000" />
+              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full  from-transparent via-white/20 to-transparent transition-transform duration-1000" />
             </>
           ) : (
             <div className="flex items-center justify-center h-full">
-              <div className="w-28 h-28 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg animate-pulse">
+              <div className="w-28 h-28 rounded-full  from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg animate-pulse">
                 <span className="text-white font-bold text-4xl">
                   {name.charAt(0)}
                 </span>

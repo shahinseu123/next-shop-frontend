@@ -6,7 +6,11 @@ import ProductTabs from "./ProductTabs";
 import RelatedProducts from "./RelatedProducts";
 import SizeGuide from "./SizeGuide";
 
-export default function ProductDetailsUI({ product }: { product: ProductDetails }) {
+export default function ProductDetailsUI({
+  product,
+}: {
+  product: ProductDetails;
+}) {
   return (
     <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-2 py-2">
       {/* Main Product Section - Two Column Layout */}
@@ -15,13 +19,17 @@ export default function ProductDetailsUI({ product }: { product: ProductDetails 
         <div>
           <ProductDetailsSlider sliders={product.imageUrls} />
         </div>
-        
+
         {/* Right Column: Product Info */}
         <ProductInfo product={product} />
       </div>
 
       {/* Product Actions: Quantity & Add to Cart */}
-      <ProductActions product={product} />
+      <ProductActions
+        product={product}
+        // selectedSize={selectedSize}
+        // selectedColor={selectedColor}
+      />
 
       {/* Product Details Tabs */}
       <ProductTabs product={product} />

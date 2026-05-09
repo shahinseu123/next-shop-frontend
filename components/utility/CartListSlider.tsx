@@ -8,12 +8,12 @@ import { ArrowRight } from "lucide-react";
 const responsive = {
   superLargeDesktop: {
     breakpoint: { max: 4000, min: 3000 },
-    items: 6,
+    items: 7,
     partialVisibilityGutter: 20,
   },
   desktop: {
     breakpoint: { max: 3000, min: 1024 },
-    items: 5,
+    items: 6,
     partialVisibilityGutter: 20,
   },
   tablet: {

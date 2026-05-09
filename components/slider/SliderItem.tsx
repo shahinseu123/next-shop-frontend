@@ -1,7 +1,7 @@
 import { SliderType } from "@/type/shop";
 import Image from "next/image";
 
-export const SliderItem = ({ slide }: { slide: SliderType }) => {
+export const SliderItem = ({ slide, showContent }: { slide: SliderType, showContent: boolean }) => {
   return (
     <div className="relative w-full h-[350px] overflow-hidden">
       <div className="hidden md:block relative w-full h-full">
@@ -30,7 +30,7 @@ export const SliderItem = ({ slide }: { slide: SliderType }) => {
       </div>
       
       {/* Overlay Content */}
-      <div className="absolute inset-0 bg-black/40 flex flex-col justify-center px-4 md:px-20 lg:px-32">
+      {showContent && <div className="absolute inset-0 bg-black/40 flex flex-col justify-center px-4 md:px-20 lg:px-32">
         <div className="max-w-2xl">
           {slide.subtitle && (
             <p className="text-white text-sm md:text-base lg:text-lg mb-2 md:mb-4 animate-fadeIn">
@@ -49,6 +49,7 @@ export const SliderItem = ({ slide }: { slide: SliderType }) => {
           )}
         </div>
       </div>
+      }
     </div>
   );
 };

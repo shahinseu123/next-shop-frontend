@@ -1,13 +1,18 @@
 "use client"
 import { Product } from "@/type/shop";
-import { ShoppingCart, Heart } from "lucide-react";
+import { ShoppingCart, Heart, Check } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { useCartStore } from "@/store/cartStore";
 
 export const ProductCard = ({ product }: { product: Product }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  
+  const addItem = useCartStore((state) => state.addItem);
   
   // Use dynamic product data
   const imageUrl = product.thumbnailUrl || product.imageUrls?.[0] || 'https://placehold.co/600x400/EEE/31343C';
@@ -17,15 +22,26 @@ export const ProductCard = ({ product }: { product: Product }) => {
     (mrp > sellingPrice ? Math.round(((mrp - sellingPrice) / mrp) * 100) : 0);
   const hasDiscount = discountPercentage > 0;
   
-  // Function to get tag styling and content (now accepts product prop)
-  const getTagDetails = () => {
-    // You can add logic here to determine tag based on product properties
-    // For example: product.isNew, product.isFeatured, product.isBestSelling, etc.
-    // For now, returning null as these tags might not be in the Product interface
-    return null;
+  const handleAddToCart = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (isAddingToCart) return;
+    
+    setIsAddingToCart(true);
+    
+    // Simulate a tiny delay for better UX
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
+    // Add to cart with quantity 1
+    addItem(product, 1);
+    
+    setIsAddingToCart(false);
+    setShowSuccess(true);
+    
+    // Show success checkmark for 1.5 seconds
+    setTimeout(() => setShowSuccess(false), 1500);
   };
-
-  const tag = getTagDetails();
 
   return (
     <div 
@@ -45,21 +61,7 @@ export const ProductCard = ({ product }: { product: Product }) => {
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
           />
           
-          {/* Tag Badge - Top Left (Only if tag exists) */}
-          {/* {tag && (
-            <div className="absolute top-0 left-0 z-10">
-              <div className="relative">
-                <div className={`bg-gradient-to-r ${tag.bgGradient} text-white px-2.5 py-1 rounded-br-md shadow-md flex items-center gap-1`}>
-                  <span className="text-xs font-bold">{tag.icon}</span>
-                  <span className="text-xs font-bold">{tag.text}</span>
-                </div>
-                <div className="absolute -bottom-1.5 left-0 w-0 h-0 border-l-[6px] border-l-transparent border-t-[6px]" 
-                     style={{ borderTopColor: tag.color }} />
-              </div>
-            </div>
-          )} */}
-          
-          {/* Discount Badge - Top Right (Only if discount exists) */}
+          {/* Discount Badge - Top Right */}
           {hasDiscount && (
             <div className="absolute top-2 right-2 z-10">
               <div className="bg-gradient-to-r from-red-500 to-red-600 text-white px-2 py-0.5 rounded-full shadow-md flex items-center gap-1">
@@ -71,7 +73,7 @@ export const ProductCard = ({ product }: { product: Product }) => {
         </div>
       </Link>
       
-      {/* Wishlist Button - Bottom Right (outside Link to remain interactive) */}
+      {/* Wishlist Button - Bottom Right */}
       <button
         onClick={(e) => {
           e.preventDefault();
@@ -89,7 +91,7 @@ export const ProductCard = ({ product }: { product: Product }) => {
         />
       </button>
       
-      {/* Product Details - with Link */}
+      {/* Product Details */}
       <Link href={`/products/${product.id}`} className="block pt-3 space-y-1.5 bg-transparent">
         {/* Product Title & Brand in one line */}
         <div className="flex items-baseline justify-between gap-2">
@@ -121,12 +123,38 @@ export const ProductCard = ({ product }: { product: Product }) => {
         </div>
       </Link>
       
-      {/* Add to Cart Button - outside Link to remain interactive */}
+      {/* Add to Cart Button */}
       <button 
-        className="w-full mt-2 bg-transparent border border-gray-300 text-gray-700 py-1.5 rounded-md font-medium text-sm flex items-center justify-center gap-1.5 hover:bg-gray-700 hover:text-white hover:border-gray-700 transition-all duration-200"
+        onClick={handleAddToCart}
+        disabled={isAddingToCart}
+        className={`w-full mt-2 border rounded-md font-medium text-sm flex items-center justify-center gap-1.5 transition-all duration-200 ${
+          showSuccess
+            ? 'bg-emerald-500 border-emerald-500 text-white'
+            : isAddingToCart
+              ? 'bg-gray-300 border-gray-300 text-gray-500 cursor-wait'
+              : 'bg-transparent border-gray-300 text-gray-700 hover:bg-gray-700 hover:text-white hover:border-gray-700'
+        }`}
+        style={{ 
+          paddingTop: '0.375rem', 
+          paddingBottom: '0.375rem' 
+        }}
       >
-        <ShoppingCart className="w-3.5 h-3.5" />
-        Add to Cart
+        {showSuccess ? (
+          <>
+            <Check className="w-3.5 h-3.5" />
+            <span>Added!</span>
+          </>
+        ) : isAddingToCart ? (
+          <>
+            <div className="w-3.5 h-3.5 border-2 border-gray-500 border-t-transparent rounded-full animate-spin" />
+            <span>Adding...</span>
+          </>
+        ) : (
+          <>
+            <ShoppingCart className="w-3.5 h-3.5" />
+            <span>Add to Cart</span>
+          </>
+        )}
       </button>
     </div>
   );

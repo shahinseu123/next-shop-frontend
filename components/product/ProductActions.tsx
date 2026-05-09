@@ -1,11 +1,18 @@
 "use client"
 import { ProductDetails } from "@/type/shop";
 import { useState } from "react";
+import { useCartStore } from "@/store/cartStore";
 import { ShoppingCart, Minus, Plus, CreditCard, ShieldCheck, Truck, RefreshCw, X } from "lucide-react";
 
-export default function ProductActions({ product }: { product: ProductDetails }) {
+export default function ProductActions({ product, selectedSize, selectedColor }: { 
+  product: ProductDetails;
+  selectedSize?: string;
+  selectedColor?: string;
+}) {
   const [quantity, setQuantity] = useState(1);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const addItem = useCartStore((state) => state.addItem);
+  const setIsCartOpen = useCartStore((state) => state.setIsCartOpen);
 
   const maxStock = product.quantityInStock || 0;
   const isInStock = maxStock > 0;
@@ -27,15 +34,22 @@ export default function ProductActions({ product }: { product: ProductDetails })
     if (!isInStock) return;
     
     setIsAddingToCart(true);
-    await new Promise(resolve => setTimeout(resolve, 500));
-    console.log(`Added ${quantity} of ${product.name} to cart`);
+    
+    // Simulate API call for better UX
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    // Add to cart store
+    addItem(product, quantity, selectedSize, selectedColor);
+    
     setIsAddingToCart(false);
+    
+    // Optional: Show success indicator or open cart
+    // setIsCartOpen(true); // Uncomment to auto-open cart
   };
 
   const totalPrice = currentPrice * quantity;
   const freeShippingThreshold = 50;
   const isFreeShipping = totalPrice >= freeShippingThreshold;
-
   // Out of stock state
   if (!isInStock) {
     return (

@@ -1,9 +1,10 @@
 // app/register/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useUserService } from "@/services/userService";
 import {
   User,
   Mail,
@@ -15,12 +16,16 @@ import {
   Sparkles,
   Phone,
   AtSign,
+  CheckCircle,
+  AlertCircle,
+  LogIn,
 } from "lucide-react";
-import { ButtonPrimary } from "@/components/utility/ButtonPrimary";
 import { tokenService } from "@/lib/auth";
 import { useApi } from "@/hook/useApi";
 import { registerSchema, RegisterFormData } from "@/lib/validation/auth";
-import { ZodError } from "zod";
+import { useValidation } from "@/hook/useValidation";
+import { SubmitButton } from "@/components/utility/SubmitButton";
+import { useUserStore } from "@/store/userStore";
 
 interface RegisterResponse {
   accessToken?: string;
@@ -36,7 +41,15 @@ interface RegisterResponse {
 }
 
 export default function RegisterPage() {
+  const { setUser, setAuthenticated } = useUserStore();
+  const { fetchUser } = useUserService();
   const router = useRouter();
+
+  // Refs for cleanup
+  const timeoutRef = useRef<NodeJS.Timeout>();
+  const mountedRef = useRef(true);
+
+  // Form state
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState<RegisterFormData>({
@@ -48,50 +61,158 @@ export default function RegisterPage() {
     confirmPassword: "",
     agreeTerms: false,
   });
-
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [generalError, setGeneralError] = useState<string>("");
 
-  // Auto login after registration
-  const { execute: executeLogin, loading: loginLoading } = useApi("/authenticate", "POST", {
-    requiresAuth: false,
-    onSuccess: (data) => {
-      const token = data.accessToken || data.token;
-      if (token) {
-        tokenService.setToken(token);
-        // Redirect to home page after successful login
-        setTimeout(() => {
-          router.push('/');
-          router.refresh();
-        }, 1000);
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
       }
-    },
-    onError: (error) => {
-      console.error("Auto login failed:", error);
-      // If auto login fails, redirect to login page
-      setTimeout(() => {
-        router.push('/login?registered=true');
-      }, 1000);
-    }
-  });
+    };
+  }, []);
 
-  const { execute: executeRegister, loading, data } = useApi<RegisterResponse>("/v2/users", "POST", {
-    requiresAuth: false,
-    onSuccess: async (data) => {
-      console.log("Registration successful:", data);
-      // Auto login after successful registration
-      await executeLogin({
-        data: {
-          username: formData.email,
-          password: formData.password
+  // Auto login after registration
+  const { execute: executeLogin, loading: loginLoading } = useApi(
+    "/authenticate",
+    "POST",
+    {
+      requiresAuth: false,
+      onSuccess: async (data) => {
+        const token = data.accessToken || data.token;
+
+        if (!token) {
+          console.error("No token received after login");
+          if (mountedRef.current) {
+            router.push("/login?registered=true");
+          }
+          return;
         }
+
+        tokenService.setToken(token);
+
+        try {
+          const userData = await fetchUser();
+
+          if (mountedRef.current) {
+            if (userData) {
+              setUser(userData);
+              setAuthenticated(true);
+              router.push("/");
+              router.refresh();
+            } else {
+              console.warn("User data is null after successful login");
+              router.push(
+                "/login?registered=true&message=Account created! Please sign in."
+              );
+            }
+          }
+        } catch (error) {
+          console.error("Failed to fetch user info:", error);
+
+          if (mountedRef.current) {
+            router.push("/");
+            router.refresh();
+          }
+        }
+      },
+      onError: (error) => {
+        console.error("Auto login failed:", error);
+        if (mountedRef.current) {
+          timeoutRef.current = setTimeout(() => {
+            router.push(
+              "/login?registered=true&message=Account created successfully! Please sign in."
+            );
+          }, 1000);
+        }
+      },
+    }
+  );
+
+  // Registration
+  const { execute: executeRegister, loading: registerLoading } =
+    useApi<RegisterResponse>("/v2/users", "POST", {
+      requiresAuth: false,
+      onSuccess: async (data) => {
+        console.log("Registration successful:", data);
+
+        const credentials = {
+          username: formData.email,
+          password: formData.password,
+        };
+
+        setFormData((prev) => ({
+          ...prev,
+          password: "",
+          confirmPassword: "",
+        }));
+
+        await executeLogin({
+          data: credentials,
+        });
+      },
+      onError: (error) => {
+        setGeneralError(
+          error.message || "Registration failed. Please try again."
+        );
+      },
+    });
+
+  // Form validation
+  const {
+    errors,
+    touched,
+    validateForm,
+    handleBlur,
+    hasError,
+    clearFieldError,
+  } = useValidation({
+    schema: registerSchema,
+    onSuccess: async (data) => {
+      console.log("✅ Validation passed, calling register API");
+      await executeRegister({
+        data: {
+          name: data.name,
+          email: data.email,
+          phoneNumber: data.phoneNumber || undefined,
+          username: data.username,
+          password: data.password,
+        },
       });
     },
-    onError: (error) => {
-      setGeneralError(error.message || "Registration failed. Please try again.");
-    }
   });
 
+  // Event handlers
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+    clearFieldError(name as keyof RegisterFormData);
+    if (generalError) setGeneralError("");
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log("📋 handleSubmit called");
+    console.log("📋 Form data:", formData);
+    
+    // Try to validate manually
+    try {
+      await registerSchema.parseAsync(formData);
+      console.log("✅ Manual validation passed");
+    } catch (validationError) {
+      console.log("❌ Manual validation failed:", validationError);
+    }
+    
+    console.log("🔄 Calling validateForm...");
+    validateForm(formData);
+    console.log("✅ validateForm called (but might be async)");
+  };
+
+  // Password strength calculation
   const validatePassword = (password: string) => {
     const hasUpperCase = /[A-Z]/.test(password);
     const hasLowerCase = /[a-z]/.test(password);
@@ -100,396 +221,491 @@ export default function RegisterPage() {
     return { hasUpperCase, hasLowerCase, hasNumber, hasMinLength };
   };
 
-  const passwordStrength = validatePassword(formData.password);
+  const passwordStrength = useMemo(
+    () => validatePassword(formData.password),
+    [formData.password]
+  );
+
   const strengthCount = Object.values(passwordStrength).filter(Boolean).length;
 
-  const getStrengthText = () => {
-    if (strengthCount === 4) return { text: "Strong", color: "text-green-600", width: "w-full" };
-    if (strengthCount === 3) return { text: "Good", color: "text-blue-600", width: "w-3/4" };
-    if (strengthCount === 2) return { text: "Fair", color: "text-yellow-600", width: "w-1/2" };
-    return { text: "Weak", color: "text-red-600", width: "w-1/4" };
-  };
+  const getStrengthText = useMemo(() => {
+    if (strengthCount === 4)
+      return {
+        text: "Strong",
+        color: "text-green-600",
+        bgColor: "bg-green-500",
+      };
+    if (strengthCount === 3)
+      return { text: "Good", color: "text-blue-600", bgColor: "bg-blue-500" };
+    if (strengthCount === 2)
+      return {
+        text: "Fair",
+        color: "text-yellow-600",
+        bgColor: "bg-yellow-500",
+      };
+    return { text: "Weak", color: "text-red-600", bgColor: "bg-red-500" };
+  }, [strengthCount]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-    
-    // Clear field error when user starts typing
-    if (fieldErrors[name]) {
-      setFieldErrors((prev) => ({ ...prev, [name]: "" }));
-    }
-    
-    // Clear general error
-    if (generalError) setGeneralError("");
-  };
+  const isLoading = registerLoading || loginLoading;
 
-  const validateForm = (): boolean => {
-    try {
-      registerSchema.parse(formData);
-      setFieldErrors({});
-      setGeneralError("");
-      return true;
-    } catch (error) {
-      if (error instanceof ZodError) {
-        const errors: Record<string, string> = {};
-        // error.errors.forEach((err) => {
-        //   if (err.path) {
-        //     errors[err.path[0]] = err.message;
-        //   }
-        // });
-        setFieldErrors(errors);
-      }
-      return false;
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    console.log("submit")
-    e.preventDefault();
-    
-    // Validate form with Zod
-    if (!validateForm()) {
-      console.log("validation faild")
-      return;
-    }
-    
-    try {
-      // Send data exactly as your backend expects (without roleId)
-      await executeRegister({
-        data: {
-          name: formData.name,
-          email: formData.email,
-          phoneNumber: formData.phoneNumber || undefined,
-          username: formData.username,
-          password: formData.password,
-          // roleId is omitted as requested
-        }
-      });
-    } catch (error) {
-      console.error("Registration error:", error);
-    }
-  };
-
-  const isLoading = loading || loginLoading;
+  const passwordRequirements = useMemo(
+    () => [
+      {
+        met: passwordStrength.hasMinLength,
+        text: "At least 8 characters",
+      },
+      {
+        met: passwordStrength.hasUpperCase,
+        text: "One uppercase letter",
+      },
+      {
+        met: passwordStrength.hasLowerCase,
+        text: "One lowercase letter",
+      },
+      {
+        met: passwordStrength.hasNumber,
+        text: "One number",
+      },
+    ],
+    [passwordStrength]
+  );
 
   return (
-    <div className="min-h-[calc(100vh-73px)] bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-[calc(100vh-73px)] bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center py-6 px-4">
       {/* Background Decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-indigo-100 rounded-full blur-3xl opacity-60"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-100 rounded-full blur-3xl opacity-60"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-white rounded-full blur-3xl opacity-40"></div>
+        <div className="absolute -top-32 -right-32 w-60 h-60 bg-indigo-100 rounded-full blur-3xl opacity-50" />
+        <div className="absolute -bottom-32 -left-32 w-60 h-60 bg-purple-100 rounded-full blur-3xl opacity-50" />
       </div>
 
       {/* Register Card */}
-      <div className="relative w-full max-w-md">
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-indigo-100 overflow-hidden">
+      <div className="relative w-full max-w-sm">
+        <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-indigo-100 overflow-hidden">
           {/* Header */}
-          <div className="px-8 pt-8 pb-6 text-center border-b border-indigo-100">
-            <div className="flex justify-center mb-4">
-              <div className="bg-gradient-to-br from-indigo-500 to-purple-500 p-3 rounded-2xl shadow-lg">
-                <UserPlus size={28} className="text-white" />
+          <div className="px-5 pt-5 pb-3 text-center border-b border-indigo-100">
+            <div className="flex justify-center mb-2">
+              <div className="bg-gradient-to-br from-indigo-500 to-purple-500 p-2 rounded-xl shadow-md">
+                <UserPlus size={22} className="text-white" />
               </div>
             </div>
-            <h2 className="text-2xl font-bold text-gray-800">Create Account</h2>
-            <p className="text-gray-500 text-sm mt-1">
+            <h2 className="text-lg font-bold text-gray-800">Create Account</h2>
+            <p className="text-gray-500 text-xs mt-0.5">
               Join us and start shopping
             </p>
           </div>
 
-          {/* Success Message */}
-          {data && (
-            <div className="mx-8 mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-green-600 text-sm text-center">
-                Registration successful! Redirecting...
+          {/* Error Alert */}
+          {generalError && (
+            <div
+              className="mx-5 mt-3 p-2.5 bg-red-50 border border-red-200 rounded-lg"
+              role="alert"
+            >
+              <p className="text-red-600 text-xs text-center flex items-center justify-center gap-1.5">
+                <AlertCircle size={12} />
+                {generalError}
               </p>
             </div>
           )}
 
-          {/* Error Alert */}
-          {generalError && (
-            <div className="mx-8 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-600 text-sm text-center">{generalError}</p>
-            </div>
-          )}
-
           {/* Form */}
-          <form onSubmit={handleSubmit} className="px-8 py-6 space-y-4">
+          <form
+            onSubmit={(e) => {
+              console.log("🔄 Form onSubmit triggered");
+              handleSubmit(e);
+            }}
+            className="px-5 py-3 space-y-3"
+            noValidate
+          >
             {/* Full Name */}
             <div>
-              <label className="block text-gray-700 text-sm font-medium mb-2">
+              <label
+                htmlFor="name"
+                className="block text-gray-700 text-xs font-medium mb-1"
+              >
                 Full Name <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <User
-                  size={18}
+                  size={14}
                   className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
                 />
                 <input
+                  id="name"
                   type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  className={`w-full pl-10 pr-4 py-2.5 bg-gray-50 border rounded-lg focus:outline-none focus:ring-2 text-gray-800 placeholder-gray-400 transition-all ${
-                    fieldErrors.name
+                  onBlur={() => handleBlur("name")}
+                  className={`w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border rounded-lg focus:outline-none focus:ring-2 transition-all ${
+                    hasError("name")
                       ? "border-red-400 focus:border-red-400 focus:ring-red-200"
+                      : touched.name && !errors.name && formData.name
+                      ? "border-green-400 focus:border-green-400 focus:ring-green-200"
                       : "border-gray-200 focus:border-indigo-300 focus:ring-indigo-200"
                   }`}
                   placeholder="Enter your full name"
                   disabled={isLoading}
+                  aria-invalid={hasError("name")}
+                  aria-describedby={
+                    hasError("name") ? "name-error" : undefined
+                  }
                 />
+                {touched.name && !errors.name && formData.name && (
+                  <CheckCircle
+                    size={14}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500"
+                  />
+                )}
               </div>
-              {fieldErrors.name && (
-                <p className="text-red-500 text-xs mt-1">{fieldErrors.name}</p>
+              {hasError("name") && (
+                <p
+                  id="name-error"
+                  className="text-red-500 text-[10px] mt-0.5 flex items-center gap-1"
+                  role="alert"
+                >
+                  <AlertCircle size={10} />
+                  {errors.name}
+                </p>
               )}
             </div>
 
             {/* Username */}
             <div>
-              <label className="block text-gray-700 text-sm font-medium mb-2">
+              <label
+                htmlFor="username"
+                className="block text-gray-700 text-xs font-medium mb-1"
+              >
                 Username <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <AtSign
-                  size={18}
+                  size={14}
                   className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
                 />
                 <input
+                  id="username"
                   type="text"
                   name="username"
                   value={formData.username}
                   onChange={handleChange}
-                  className={`w-full pl-10 pr-4 py-2.5 bg-gray-50 border rounded-lg focus:outline-none focus:ring-2 text-gray-800 placeholder-gray-400 transition-all ${
-                    fieldErrors.username
+                  onBlur={() => handleBlur("username")}
+                  className={`w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border rounded-lg focus:outline-none focus:ring-2 transition-all ${
+                    hasError("username")
                       ? "border-red-400 focus:border-red-400 focus:ring-red-200"
                       : "border-gray-200 focus:border-indigo-300 focus:ring-indigo-200"
                   }`}
                   placeholder="Choose a username"
                   disabled={isLoading}
+                  aria-invalid={hasError("username")}
+                  aria-describedby={
+                    hasError("username") ? "username-error" : undefined
+                  }
                 />
               </div>
-              {fieldErrors.username && (
-                <p className="text-red-500 text-xs mt-1">{fieldErrors.username}</p>
+              {hasError("username") && (
+                <p
+                  id="username-error"
+                  className="text-red-500 text-[10px] mt-0.5"
+                  role="alert"
+                >
+                  {errors.username}
+                </p>
               )}
             </div>
 
             {/* Email */}
             <div>
-              <label className="block text-gray-700 text-sm font-medium mb-2">
-                Email Address <span className="text-red-500">*</span>
+              <label
+                htmlFor="email"
+                className="block text-gray-700 text-xs font-medium mb-1"
+              >
+                Email <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <Mail
-                  size={18}
+                  size={14}
                   className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
                 />
                 <input
+                  id="email"
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className={`w-full pl-10 pr-4 py-2.5 bg-gray-50 border rounded-lg focus:outline-none focus:ring-2 text-gray-800 placeholder-gray-400 transition-all ${
-                    fieldErrors.email
+                  onBlur={() => handleBlur("email")}
+                  className={`w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border rounded-lg focus:outline-none focus:ring-2 transition-all ${
+                    hasError("email")
                       ? "border-red-400 focus:border-red-400 focus:ring-red-200"
                       : "border-gray-200 focus:border-indigo-300 focus:ring-indigo-200"
                   }`}
                   placeholder="Enter your email"
                   disabled={isLoading}
+                  aria-invalid={hasError("email")}
+                  aria-describedby={
+                    hasError("email") ? "email-error" : undefined
+                  }
                 />
               </div>
-              {fieldErrors.email && (
-                <p className="text-red-500 text-xs mt-1">{fieldErrors.email}</p>
+              {hasError("email") && (
+                <p
+                  id="email-error"
+                  className="text-red-500 text-[10px] mt-0.5"
+                  role="alert"
+                >
+                  {errors.email}
+                </p>
               )}
             </div>
 
             {/* Phone Number */}
             <div>
-              <label className="block text-gray-700 text-sm font-medium mb-2">
-                Phone Number <span className="text-gray-400">(Optional)</span>
+              <label
+                htmlFor="phoneNumber"
+                className="block text-gray-700 text-xs font-medium mb-1"
+              >
+                Phone <span className="text-gray-400">(Optional)</span>
               </label>
               <div className="relative">
                 <Phone
-                  size={18}
+                  size={14}
                   className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
                 />
                 <input
+                  id="phoneNumber"
                   type="tel"
                   name="phoneNumber"
                   value={formData.phoneNumber}
                   onChange={handleChange}
-                  className={`w-full pl-10 pr-4 py-2.5 bg-gray-50 border rounded-lg focus:outline-none focus:ring-2 text-gray-800 placeholder-gray-400 transition-all ${
-                    fieldErrors.phoneNumber
-                      ? "border-red-400 focus:border-red-400 focus:ring-red-200"
-                      : "border-gray-200 focus:border-indigo-300 focus:ring-indigo-200"
-                  }`}
-                  placeholder="Enter your phone number"
+                  className="w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-200 transition-all"
+                  placeholder="Enter your phone number (optional)"
                   disabled={isLoading}
                 />
               </div>
-              {fieldErrors.phoneNumber && (
-                <p className="text-red-500 text-xs mt-1">{fieldErrors.phoneNumber}</p>
-              )}
             </div>
 
             {/* Password */}
             <div>
-              <label className="block text-gray-700 text-sm font-medium mb-2">
+              <label
+                htmlFor="password"
+                className="block text-gray-700 text-xs font-medium mb-1"
+              >
                 Password <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <Lock
-                  size={18}
+                  size={14}
                   className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
                 />
                 <input
+                  id="password"
                   type={showPassword ? "text" : "password"}
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  className={`w-full pl-10 pr-12 py-2.5 bg-gray-50 border rounded-lg focus:outline-none focus:ring-2 text-gray-800 placeholder-gray-400 transition-all ${
-                    fieldErrors.password
+                  onBlur={() => handleBlur("password")}
+                  className={`w-full pl-9 pr-9 py-2 text-sm bg-gray-50 border rounded-lg focus:outline-none focus:ring-2 transition-all ${
+                    hasError("password")
                       ? "border-red-400 focus:border-red-400 focus:ring-red-200"
                       : "border-gray-200 focus:border-indigo-300 focus:ring-indigo-200"
                   }`}
                   placeholder="Create a password"
                   disabled={isLoading}
+                  aria-invalid={hasError("password")}
+                  aria-describedby={
+                    hasError("password")
+                      ? "password-error"
+                      : "password-requirements"
+                  }
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                  disabled={isLoading}
+                  aria-label={
+                    showPassword ? "Hide password" : "Show password"
+                  }
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
               </div>
 
               {formData.password && (
-                <div className="mt-2 space-y-2">
-                  <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full rounded-full transition-all duration-300 bg-indigo-500`}
+                <div id="password-requirements" className="mt-1.5 space-y-1">
+                  {/* Strength bar */}
+                  <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-300 ${getStrengthText.bgColor}`}
                       style={{ width: `${(strengthCount / 4) * 100}%` }}
                     />
                   </div>
-                  <p className={`text-xs font-medium ${getStrengthText().color}`}>
-                    Password strength: {getStrengthText().text}
+                  <p
+                    className={`text-[10px] font-medium ${getStrengthText.color}`}
+                  >
+                    {getStrengthText.text} password
                   </p>
-                  <ul className="text-xs text-gray-500 space-y-1">
-                    <li className={passwordStrength.hasMinLength ? "text-green-600" : ""}>
-                      • At least 8 characters
-                    </li>
-                    <li className={passwordStrength.hasUpperCase ? "text-green-600" : ""}>
-                      • At least one uppercase letter
-                    </li>
-                    <li className={passwordStrength.hasLowerCase ? "text-green-600" : ""}>
-                      • At least one lowercase letter
-                    </li>
-                    <li className={passwordStrength.hasNumber ? "text-green-600" : ""}>
-                      • At least one number
-                    </li>
-                  </ul>
+
+                  {/* Requirements checklist */}
+                  <div className="space-y-0.5 mt-1">
+                    {passwordRequirements.map((req, index) => (
+                      <div key={index} className="flex items-center gap-1">
+                        {req.met ? (
+                          <CheckCircle
+                            size={10}
+                            className="text-green-500"
+                          />
+                        ) : (
+                          <AlertCircle size={10} className="text-gray-300" />
+                        )}
+                        <span
+                          className={`text-[10px] ${
+                            req.met ? "text-green-600" : "text-gray-400"
+                          }`}
+                        >
+                          {req.text}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
-              {fieldErrors.password && (
-                <p className="text-red-500 text-xs mt-1">{fieldErrors.password}</p>
+
+              {hasError("password") && (
+                <p
+                  id="password-error"
+                  className="text-red-500 text-[10px] mt-0.5"
+                  role="alert"
+                >
+                  {errors.password}
+                </p>
               )}
             </div>
 
             {/* Confirm Password */}
             <div>
-              <label className="block text-gray-700 text-sm font-medium mb-2">
+              <label
+                htmlFor="confirmPassword"
+                className="block text-gray-700 text-xs font-medium mb-1"
+              >
                 Confirm Password <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <Lock
-                  size={18}
+                  size={14}
                   className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
                 />
                 <input
+                  id="confirmPassword"
                   type={showConfirmPassword ? "text" : "password"}
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  className={`w-full pl-10 pr-12 py-2.5 bg-gray-50 border rounded-lg focus:outline-none focus:ring-2 text-gray-800 placeholder-gray-400 transition-all ${
-                    fieldErrors.confirmPassword
+                  onBlur={() => handleBlur("confirmPassword")}
+                  className={`w-full pl-9 pr-9 py-2 text-sm bg-gray-50 border rounded-lg focus:outline-none focus:ring-2 transition-all ${
+                    hasError("confirmPassword")
                       ? "border-red-400 focus:border-red-400 focus:ring-red-200"
                       : "border-gray-200 focus:border-indigo-300 focus:ring-indigo-200"
                   }`}
                   placeholder="Confirm your password"
                   disabled={isLoading}
+                  aria-invalid={hasError("confirmPassword")}
+                  aria-describedby={
+                    hasError("confirmPassword")
+                      ? "confirmPassword-error"
+                      : undefined
+                  }
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                  disabled={isLoading}
+                  aria-label={
+                    showConfirmPassword
+                      ? "Hide confirm password"
+                      : "Show confirm password"
+                  }
                 >
                   {showConfirmPassword ? (
-                    <EyeOff size={18} />
+                    <EyeOff size={14} />
                   ) : (
-                    <Eye size={18} />
+                    <Eye size={14} />
                   )}
                 </button>
               </div>
-              {fieldErrors.confirmPassword && (
-                <p className="text-red-500 text-xs mt-1">
-                  {fieldErrors.confirmPassword}
+              {hasError("confirmPassword") && (
+                <p
+                  id="confirmPassword-error"
+                  className="text-red-500 text-[10px] mt-0.5"
+                  role="alert"
+                >
+                  {errors.confirmPassword}
                 </p>
               )}
             </div>
 
             {/* Terms */}
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-2">
               <input
+                id="agreeTerms"
                 type="checkbox"
                 name="agreeTerms"
                 checked={formData.agreeTerms}
                 onChange={handleChange}
-                className="mt-1 w-4 h-4 text-indigo-500 bg-gray-50 border-gray-300 rounded focus:ring-indigo-400 focus:ring-2"
+                onBlur={() => handleBlur("agreeTerms")}
+                className="mt-0.5 w-3.5 h-3.5 text-indigo-500 bg-gray-50 border-gray-300 rounded focus:ring-indigo-400 focus:ring-2"
                 disabled={isLoading}
+                aria-invalid={hasError("agreeTerms")}
+                aria-describedby={
+                  hasError("agreeTerms") ? "agreeTerms-error" : undefined
+                }
               />
-              <label className="text-sm text-gray-600">
+              <label
+                htmlFor="agreeTerms"
+                className="text-[10px] text-gray-500 leading-relaxed"
+              >
                 I agree to the{" "}
                 <Link
                   href="/terms"
-                  className="text-indigo-600 hover:text-indigo-800 transition-colors font-medium"
+                  className="text-indigo-600 hover:text-indigo-800 font-medium"
                 >
                   Terms of Service
                 </Link>{" "}
                 and{" "}
                 <Link
                   href="/privacy"
-                  className="text-indigo-600 hover:text-indigo-800 transition-colors font-medium"
+                  className="text-indigo-600 hover:text-indigo-800 font-medium"
                 >
                   Privacy Policy
-                </Link>{" "}
-                <span className="text-red-500">*</span>
+                </Link>
               </label>
             </div>
-            {fieldErrors.agreeTerms && (
-              <p className="text-red-500 text-xs">{fieldErrors.agreeTerms}</p>
+            {hasError("agreeTerms") && (
+              <p
+                id="agreeTerms-error"
+                className="text-red-500 text-[10px] flex items-center gap-1"
+                role="alert"
+              >
+                <AlertCircle size={10} />
+                {errors.agreeTerms}
+              </p>
             )}
 
             {/* Submit Button */}
-            <ButtonPrimary
-              title={isLoading ? "Creating Account..." : "Create Account"}
-              onClick={handleSubmit}
-              bgColor="#6366F1"
-              hoverBgColor="#4F46E5"
-              icon={!isLoading && <UserPlus size={16} />}
-              disabled={isLoading}
+            <SubmitButton
+              loading={isLoading}
+              type="submit"
+              icon={<LogIn color="#ffffff" size={16} />}
               fullWidth
-              size="lg"
-            />
+              size="md"
+              variant="primary"
+              disabled={isLoading}
+            >
+              Sign Up
+            </SubmitButton>
           </form>
 
           {/* Footer */}
-          <div className="px-8 py-6 bg-indigo-50/30 border-t border-indigo-100 text-center">
-            <p className="text-gray-600 text-sm">
+          <div className="px-5 py-3 bg-indigo-50/30 border-t border-indigo-100 text-center">
+            <p className="text-gray-500 text-xs">
               Already have an account?{" "}
               <Link
                 href="/login"
@@ -502,11 +718,11 @@ export default function RegisterPage() {
         </div>
 
         {/* Trust Badge */}
-        <div className="text-center mt-6">
-          <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
-            <Shield size={12} />
-            <span>Secure Registration • Data Protected</span>
-            <Sparkles size={12} />
+        <div className="text-center mt-3">
+          <div className="flex items-center justify-center gap-1.5 text-[10px] text-gray-400">
+            <Shield size={10} />
+            <span>Secure Registration</span>
+            <Sparkles size={10} />
           </div>
         </div>
       </div>

@@ -3,7 +3,6 @@
 import { Brand } from "@/type/shop";
 import { BrandCard } from "./BrandCard";
 import { CardListSlider } from "../utility/CartListSlider";
-import { Title } from "../utility/Title";
 
 interface BrandCardListProps {
   brands: Array<Brand>;
@@ -19,7 +18,7 @@ export const BrandCardList = ({
   title = "Shop by Brand",
   autoPlay = true,
   showArrows = true,
-  variant = "compact",
+  variant = "logo-only",
   deviceType,
 }: BrandCardListProps) => {
   if (!brands || brands.length === 0) {
