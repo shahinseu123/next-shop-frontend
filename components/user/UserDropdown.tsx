@@ -23,11 +23,20 @@ export const UserDropdown = () => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   
   // Get auth state from store
-  const { user, isAuthenticated, setUser, setAuthenticated } = useUserStore();
+  const { user, isAuthenticated, setUser, setAuthenticated,getUserId, getRoleName, getUserName, isLoading:userLoading } = useUserStore();
 
   // Toggle dropdown
   const toggleDropdown = () => setIsOpen(!isOpen);
 
+  const getUserInitials = () => {
+    const name = getUserName() || "User";
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -65,33 +74,9 @@ export const UserDropdown = () => {
     }
   };
 
-  // Get user display name
-  const getUserDisplayName = () => {
-    if (!user) return "User";
-    return user.name || user.username || "User";
-  };
-  const getUserName = () => {
-    if (!user) return "User";
-    return user.username || "user";
-  };
+ 
 
-  // Get user email
-  const getUserEmail = () => {
-    if (!user) return "";
-    return user.email || "";
-  };
-
-  // Get user initials for avatar
-  const getUserInitials = () => {
-    const name = getUserDisplayName();
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
+  
   // If not authenticated, show sign in button
   if (!isAuthenticated) {
     return (
@@ -121,7 +106,7 @@ export const UserDropdown = () => {
           </span>
         </div>
         <span className="text-xs font-medium text-gray-700 hidden sm:inline">
-          {getUserDisplayName()} 
+          {getUserName()} 
         </span>
         <svg 
           className={`w-3 h-3 text-gray-500 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
@@ -146,11 +131,11 @@ export const UserDropdown = () => {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-gray-900 truncate">
-                  {getUserDisplayName()}
+                  {getUserName()}
                 </p>
-                <p className="text-xs text-gray-500 truncate">
+                {/* <p className="text-xs text-gray-500 truncate">
                   {getUserEmail()}
-                </p>
+                </p> */}
               </div>
             </div>
           </div>
@@ -158,7 +143,7 @@ export const UserDropdown = () => {
           {/* Menu Items */}
           <div className="py-2">
             <Link
-              href="/account/profile"
+              href={`/${getUserId()}/profile`}
               className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors group"
               onClick={() => setIsOpen(false)}
             >
@@ -167,7 +152,7 @@ export const UserDropdown = () => {
             </Link>
             
             <Link
-              href={`/${getUserName()}/orders`}
+              href={`/${getUserId()}/orders`}
               className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors group"
               onClick={() => setIsOpen(false)}
             >
@@ -179,7 +164,7 @@ export const UserDropdown = () => {
             </Link>
             
             <Link
-              href="/account/wishlist"
+              href={`/${getUserId()}/wishlist`}
               className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors group"
               onClick={() => setIsOpen(false)}
             >
@@ -190,7 +175,7 @@ export const UserDropdown = () => {
             <div className="border-t border-gray-100 my-1"></div>
             
             <Link
-              href="/account/settings"
+              href={`/${getUserId()}/settings`}
               className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors group"
               onClick={() => setIsOpen(false)}
             >
@@ -199,7 +184,7 @@ export const UserDropdown = () => {
             </Link>
             
             <Link
-              href="/account/change-password"
+              href={`/${getUserId()}/updatepassword`}
               className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors group"
               onClick={() => setIsOpen(false)}
             >

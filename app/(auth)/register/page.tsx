@@ -35,7 +35,7 @@ interface RegisterResponse {
     id: number;
     name: string;
     email: string;
-    username: string;
+    // username: string;
     phoneNumber?: string;
   };
 }
@@ -56,7 +56,7 @@ export default function RegisterPage() {
     name: "",
     email: "",
     phoneNumber: "",
-    username: "",
+    // username: "",
     password: "",
     confirmPassword: "",
     agreeTerms: false,
@@ -176,7 +176,7 @@ export default function RegisterPage() {
           name: data.name,
           email: data.email,
           phoneNumber: data.phoneNumber || undefined,
-          username: data.username,
+          // username: data.username,
           password: data.password,
         },
       });
@@ -370,7 +370,7 @@ export default function RegisterPage() {
             </div>
 
             {/* Username */}
-            <div>
+            {/* <div>
               <label
                 htmlFor="username"
                 className="block text-gray-700 text-xs font-medium mb-1"
@@ -411,7 +411,7 @@ export default function RegisterPage() {
                   {errors.username}
                 </p>
               )}
-            </div>
+            </div> */}
 
             {/* Email */}
             <div>

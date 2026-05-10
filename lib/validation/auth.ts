@@ -24,12 +24,12 @@ export const registerSchema = z
       .max(50, "Name must be less than 50 characters")
       .regex(/^[a-zA-Z\s\-']+$/, "Name can only contain letters, spaces, hyphens, and apostrophes"),
     
-    username: z
-      .string()
-      .min(1, "Username is required")
-      .min(3, "Username must be at least 3 characters")
-      .max(30, "Username must be less than 30 characters")
-      .regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores"),
+    // username: z
+    //   .string()
+    //   .min(1, "Username is required")
+    //   .min(3, "Username must be at least 3 characters")
+    //   .max(30, "Username must be less than 30 characters")
+    //   .regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores"),
     
     email: z
       .string()

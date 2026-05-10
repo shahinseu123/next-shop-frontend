@@ -1,7 +1,9 @@
 "use client";
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useUserStore } from "@/store/userStore";
 import {
   LayoutDashboard,
   Package,
@@ -26,7 +28,6 @@ import {
   Gift,
   MessageSquare,
   Shield,
-  Database,
   FileText,
   Bell,
   Globe,
@@ -42,6 +43,110 @@ import {
   Lock,
 } from "lucide-react";
 
+// Navigation items with nested structure
+const navItems = [
+  {
+    name: "Dashboard",
+    href: "/application/shop/admin/dashboard",
+    icon: LayoutDashboard,
+  },
+  {
+    name: "Catalog",
+    icon: Package,
+    isNested: true,
+    children: [
+      { name: "All Products", href: "/application/shop/admin/products", icon: Package },
+      { name: "Add New Product", href: "/application/shop/admin/products/new", icon: Plus },
+      { name: "Categories", href: "/application/shop/admin/categories", icon: Tag },
+      { name: "Brands", href: "/application/shop/admin/brands", icon: Building2 },
+      { name: "Attributes", href: "/application/shop/admin/attributes", icon: Layers },
+      { name: "Reviews", href: "/application/shop/admin/reviews", icon: Star },
+    ],
+  },
+  {
+    name: "Sales",
+    icon: ShoppingCart,
+    isNested: true,
+    children: [
+      { name: "All Orders", href: "/application/shop/admin/orders", icon: ShoppingCart },
+      { name: "Pending Orders", href: "/application/shop/admin/orders/pending", icon: Clock },
+      { name: "Completed Orders", href: "/application/shop/admin/orders/completed", icon: CheckCircle },
+      { name: "Returns", href: "/application/shop/admin/returns", icon: RefreshCw },
+      { name: "Invoices", href: "/application/shop/admin/invoices", icon: FileText },
+    ],
+  },
+  {
+    name: "Customers",
+    icon: Users,
+    isNested: true,
+    children: [
+      { name: "All Customers", href: "/application/shop/admin/customers", icon: Users },
+      { name: "Customer Groups", href: "/application/shop/admin/customer-groups", icon: UserCog },
+      { name: "Address Book", href: "/application/shop/admin/addresses", icon: MapPin },
+      { name: "Subscribers", href: "/application/shop/admin/subscribers", icon: Bell },
+    ],
+  },
+  {
+    name: "Marketing",
+    icon: BarChart3,
+    isNested: true,
+    children: [
+      { name: "Promotions", href: "/application/shop/admin/promotions", icon: Percent },
+      { name: "Coupons", href: "/application/shop/admin/coupons", icon: Gift },
+      { name: "Discount Rules", href: "/application/shop/admin/discounts", icon: DollarSign },
+      { name: "Banners", href: "/application/shop/admin/banners", icon: ImageIcon },
+      { name: "Sliders", href: "/application/shop/admin/slider", icon: ImageIcon },
+      { name: "Newsletter", href: "/application/shop/admin/newsletter", icon: MessageSquare },
+    ],
+  },
+  {
+    name: "Inventory",
+    icon: Box,
+    isNested: true,
+    children: [
+      { name: "Stock Management", href: "/application/shop/admin/inventory", icon: Archive },
+      { name: "Low Stock", href: "/application/shop/admin/inventory/low-stock", icon: AlertCircle },
+      { name: "Stock Transfers", href: "/application/shop/admin/inventory/transfers", icon: Truck },
+      { name: "Warehouses", href: "/application/shop/admin/warehouses", icon: Building2 },
+    ],
+  },
+  {
+    name: "Reports",
+    icon: BarChart3,
+    isNested: true,
+    children: [
+      { name: "Sales Report", href: "/application/shop/admin/reports/sales", icon: DollarSign },
+      { name: "Product Report", href: "/application/shop/admin/reports/products", icon: Package },
+      { name: "Customer Report", href: "/application/shop/admin/reports/customers", icon: Users },
+      { name: "Inventory Report", href: "/application/shop/admin/reports/inventory", icon: Archive },
+    ],
+  },
+  {
+    name: "System",
+    icon: Settings,
+    isNested: true,
+    children: [
+      { name: "General Settings", href: "/application/shop/admin/settings", icon: Settings },
+      { name: "Payment Methods", href: "/application/shop/admin/payments", icon: CreditCard },
+      { name: "Shipping Methods", href: "/application/shop/admin/shipping", icon: Truck },
+      { name: "Tax Settings", href: "/application/shop/admin/taxes", icon: Percent },
+      { name: "Email Templates", href: "/application/shop/admin/email-templates", icon: MessageSquare },
+      { name: "SEO Settings", href: "/application/shop/admin/seo", icon: Globe },
+    ],
+  },
+  {
+    name: "Users",
+    icon: Shield,
+    isNested: true,
+    children: [
+      { name: "Admin Users", href: "/application/shop/admin/users", icon: UserCog },
+      { name: "Roles", href: "/application/shop/admin/roles", icon: Shield },
+      { name: "Permissions", href: "/application/shop/admin/permissions", icon: Lock },
+      { name: "Activity Logs", href: "/application/shop/admin/activity-logs", icon: FileText },
+    ],
+  },
+];
+
 export default function DashboardLayout({
   children,
 }: Readonly<{
@@ -50,112 +155,49 @@ export default function DashboardLayout({
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [openMenus, setOpenMenus] = useState<string[]>([]);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  
   const pathname = usePathname();
   const router = useRouter();
+  
+  // Get values from store (these are state variables, not functions)
+  const isAuthenticated = useUserStore((state) => state.isAuthenticated);
+  const getRoleName = useUserStore((state) => state.getRoleName);
+  const getUserName = useUserStore((state) => state.getUserName);
+  const getUserEmail = useUserStore((state) => state.getUserEmail);
+  const _hasHydrated = useUserStore((state) => state._hasHydrated);
+  const logout = useUserStore((state) => state.logout);
+  const isLoading = useUserStore((state) => state.isLoading);
 
-  // Navigation items with nested structure
-  const navItems = [
-    {
-      name: "Dashboard",
-      href: "/application/shop/admin/dashboard",
-      icon: LayoutDashboard,
-    },
-    {
-      name: "Catalog",
-      icon: Package,
-      isNested: true,
-      children: [
-        { name: "All Products", href: "/application/shop/admin/products", icon: Package },
-        { name: "Add New Product", href: "/application/shop/admin/products/new", icon: Plus },
-        { name: "Categories", href: "/application/shop/admin/categories", icon: Tag },
-        { name: "Brands", href: "/application/shop/admin/brands", icon: Building2 },
-        { name: "Attributes", href: "/application/shop/admin/attributes", icon: Layers },
-        { name: "Reviews", href: "/application/shop/admin/reviews", icon: Star },
-      ],
-    },
-    {
-      name: "Sales",
-      icon: ShoppingCart,
-      isNested: true,
-      children: [
-        { name: "All Orders", href: "/application/shop/admin/orders", icon: ShoppingCart },
-        { name: "Pending Orders", href: "/application/shop/admin/orders/pending", icon: Clock },
-        { name: "Completed Orders", href: "/application/shop/admin/orders/completed", icon: CheckCircle },
-        { name: "Returns", href: "/application/shop/admin/returns", icon: RefreshCw },
-        { name: "Invoices", href: "/application/shop/admin/invoices", icon: FileText },
-      ],
-    },
-    {
-      name: "Customers",
-      icon: Users,
-      isNested: true,
-      children: [
-        { name: "All Customers", href: "/application/shop/admin/customers", icon: Users },
-        { name: "Customer Groups", href: "/application/shop/admin/customer-groups", icon: UserCog },
-        { name: "Address Book", href: "/application/shop/admin/addresses", icon: MapPin },
-        { name: "Subscribers", href: "/application/shop/admin/subscribers", icon: Bell },
-      ],
-    },
-    {
-      name: "Marketing",
-      icon: BarChart3,
-      isNested: true,
-      children: [
-        { name: "Promotions", href: "/application/shop/admin/promotions", icon: Percent },
-        { name: "Coupons", href: "/application/shop/admin/coupons", icon: Gift },
-        { name: "Discount Rules", href: "/application/shop/admin/discounts", icon: DollarSign },
-        { name: "Banners", href: "/application/shop/admin/banners", icon: ImageIcon },
-        { name: "Sliders", href: "/application/shop/admin/slider", icon: ImageIcon },
-        { name: "Newsletter", href: "/application/shop/admin/newsletter", icon: MessageSquare },
-      ],
-    },
-    {
-      name: "Inventory",
-      icon: Box,
-      isNested: true,
-      children: [
-        { name: "Stock Management", href: "/application/shop/admin/inventory", icon: Archive },
-        { name: "Low Stock", href: "/application/shop/admin/inventory/low-stock", icon: AlertCircle },
-        { name: "Stock Transfers", href: "/application/shop/admin/inventory/transfers", icon: Truck },
-        { name: "Warehouses", href: "/application/shop/admin/warehouses", icon: Building2 },
-      ],
-    },
-    {
-      name: "Reports",
-      icon: BarChart3,
-      isNested: true,
-      children: [
-        { name: "Sales Report", href: "/application/shop/admin/reports/sales", icon: DollarSign },
-        { name: "Product Report", href: "/application/shop/admin/reports/products", icon: Package },
-        { name: "Customer Report", href: "/application/shop/admin/reports/customers", icon: Users },
-        { name: "Inventory Report", href: "/application/shop/admin/reports/inventory", icon: Archive },
-      ],
-    },
-    {
-      name: "System",
-      icon: Settings,
-      isNested: true,
-      children: [
-        { name: "General Settings", href: "/application/shop/admin/settings", icon: Settings },
-        { name: "Payment Methods", href: "/application/shop/admin/payments", icon: CreditCard },
-        { name: "Shipping Methods", href: "/application/shop/admin/shipping", icon: Truck },
-        { name: "Tax Settings", href: "/application/shop/admin/taxes", icon: Percent },
-        { name: "Email Templates", href: "/application/shop/admin/email-templates", icon: MessageSquare },
-        { name: "SEO Settings", href: "/application/shop/admin/seo", icon: Globe },
-      ],
-    },
-    {
-      name: "Users",
-      icon: Shield,
-      isNested: true,
-      children: [
-        { name: "Admin Users", href: "/application/shop/admin/users", icon: UserCog },
-        { name: "Roles", href: "/application/shop/admin/roles", icon: Shield },
-        { name: "Permissions", href: "/application/shop/admin/permissions", icon: Lock },
-        { name: "Activity Logs", href: "/application/shop/admin/activity-logs", icon: FileText },
-      ],
-    },
-  ];
+  // Check screen size for responsive sidebar
+  useEffect(() => {
+    const checkMobile = () => {
+      if (window.innerWidth < 1024) {
+        setSidebarOpen(false);
+      } else {
+        setSidebarOpen(true);
+      }
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Role-based access control
+  useEffect(() => {
+    if (!_hasHydrated) return;
+    
+    // isAuthenticated is a boolean, not a function
+    const roleName = getRoleName();
+    const isAdmin = roleName === 'ADMIN';
+    
+    if (!isAuthenticated || !isAdmin) {
+      router.push('/application/shop/admin/login');
+    } else {
+      setIsAuthorized(true);
+    }
+  }, [_hasHydrated, isAuthenticated, getRoleName, router]);
 
   const toggleMenu = (menuName: string) => {
     setOpenMenus(prev =>
@@ -165,15 +207,30 @@ export default function DashboardLayout({
     );
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("admin_token");
-    localStorage.removeItem("admin_user");
-    router.push("/application/shop/admin/login");
+  const handleLogout = async () => {
+    await logout();
+    router.push('/application/shop/admin/login');
   };
 
   const isActive = (href: string) => {
     return pathname === href || pathname?.startsWith(href + "/");
   };
+
+  // Show loading state
+  if (!_hasHydrated || isLoading || !isAuthorized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading admin panel...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const userName = getUserName() || 'Admin';
+  const userEmail = getUserEmail() || 'admin@shop.com';
+  const userInitial = userName.charAt(0).toUpperCase();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -183,7 +240,7 @@ export default function DashboardLayout({
           sidebarOpen ? "w-72" : "w-20"
         } bg-gradient-to-b from-gray-900 to-gray-800 text-white shadow-xl flex flex-col`}
       >
-        {/* Logo - Fixed at top */}
+        {/* Logo */}
         <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-gray-700 bg-gray-900">
           {sidebarOpen ? (
             <div className="flex items-center gap-2">
@@ -201,7 +258,7 @@ export default function DashboardLayout({
           </button>
         </div>
 
-        {/* Navigation - Scrollable middle section */}
+        {/* Navigation */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -251,7 +308,6 @@ export default function DashboardLayout({
               );
             }
             
-            // Non-nested items
             const active = isActive(item.href);
             return (
               <Link
@@ -270,7 +326,7 @@ export default function DashboardLayout({
           })}
         </div>
 
-        {/* Logout Button - Fixed at bottom */}
+        {/* Logout Button */}
         <div className="flex-shrink-0 p-4 border-t border-gray-700 bg-gray-900">
           <button
             onClick={handleLogout}
@@ -285,12 +341,12 @@ export default function DashboardLayout({
       {/* Main Content */}
       <div
         className={`transition-all duration-300 ${
-          sidebarOpen ? "ml-72" : "ml-20"
+          sidebarOpen ? "lg:ml-72 ml-0" : "lg:ml-20 ml-0"
         }`}
       >
         {/* Header */}
         <header className="bg-white shadow-sm sticky top-0 z-30">
-          <div className="flex items-center justify-between px-6 py-2.5">
+          <div className="flex items-center justify-between px-4 sm:px-6 py-2.5">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -298,9 +354,12 @@ export default function DashboardLayout({
               >
                 <Menu className="w-5 h-5 text-gray-600" />
               </button>
-              <h1 className="text-lg font-semibold text-gray-800">
-                Welcome back, Admin
-              </h1>
+              <div>
+                <h1 className="text-base sm:text-lg font-semibold text-gray-800">
+                  Welcome back, {userName.split(' ')[0]}
+                </h1>
+                <p className="text-xs text-gray-500 hidden sm:block">Admin Dashboard</p>
+              </div>
             </div>
 
             {/* User Menu */}
@@ -309,49 +368,64 @@ export default function DashboardLayout({
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                 className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
               >
-                <div className="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                  A
+                <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-md">
+                  {userInitial}
                 </div>
-                {sidebarOpen && (
-                  <>
-                    <div className="text-left">
-                      <p className="text-sm font-medium text-gray-700">Admin User</p>
-                      <p className="text-xs text-gray-500">admin@shop.com</p>
-                    </div>
-                    <ChevronDown className="w-4 h-4 text-gray-500" />
-                  </>
-                )}
+                <div className="hidden sm:block text-left">
+                  <p className="text-sm font-medium text-gray-700">{userName}</p>
+                  <p className="text-xs text-gray-500">{userEmail}</p>
+                </div>
+                <ChevronDown className="w-4 h-4 text-gray-500 hidden sm:block" />
               </button>
 
               {userMenuOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-50 border">
-                  <Link
-                    href="/application/shop/admin/profile"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                  >
-                    Profile Settings
-                  </Link>
-                  <Link
-                    href="/application/shop/admin/notifications"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                  >
-                    Notifications
-                  </Link>
-                  <hr className="my-1" />
-                  <button
-                    onClick={handleLogout}
-                    className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
-                  >
-                    Logout
-                  </button>
-                </div>
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setUserMenuOpen(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg py-2 z-50 border border-gray-100">
+                    <div className="px-4 py-3 border-b border-gray-100 sm:hidden">
+                      <p className="text-sm font-medium text-gray-900">{userName}</p>
+                      <p className="text-xs text-gray-500">{userEmail}</p>
+                    </div>
+                    <Link
+                      href="/application/shop/admin/profile"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      Profile Settings
+                    </Link>
+                    <Link
+                      href="/application/shop/admin/notifications"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      Notifications
+                    </Link>
+                    <hr className="my-1" />
+                    <button
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        handleLogout();
+                      }}
+                      className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           </div>
         </header>
 
         {/* Page Content */}
-        <main className="p-6">{children}</main>
+        <main className="p-4 sm:p-6">
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
+        </main>
       </div>
     </div>
   );

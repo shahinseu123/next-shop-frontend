@@ -27,7 +27,6 @@ import { useEffect, useState } from "react";
 import SearchInput from "./SearchInput";
 import CartIcon from "../cart/CartIcon";
 import { useCartStore } from "@/store/cartStore";
-
 import { UserDropdown } from "../user/UserDropdown";
 
 export const Header = () => {
@@ -39,10 +38,6 @@ export const Header = () => {
     setMounted(true);
   }, []);
 
-  const handleClick = () => {
-    console.log("Button clicked");
-  };
-
   const navLinks = [
     { name: "Home", href: "/", icon: <Home size={14} /> },
     { name: "New Arrival", href: "/new-arrival", icon: <Sparkles size={14} /> },
@@ -53,75 +48,9 @@ export const Header = () => {
 
   return (
     <>
-      {/* Top Bar - Not Sticky */}
-      {/* <div className="bg-gray-50 border-b border-gray-200 text-gray-700 py-2">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-1.5">
-            <div className="flex items-center gap-2">
-              <Sparkles size={11} className="text-gray-400" />
-              <p className="text-[10px] md:text-xs tracking-wide text-gray-600">
-                Welcome to ShopHub - Premium Quality Products
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1">
-                <Truck size={11} className="text-gray-400" />
-                <span className="text-[10px] hidden md:inline text-gray-600">
-                  Free Shipping on Orders $50+
-                </span>
-              </div>
-              <div className="w-px h-3 bg-gray-300 hidden md:block"></div>
-              <span className="text-[10px] text-gray-600">24/7 Support</span>
-            </div>
-          </div>
-        </div>
-      </div> */}
-
-      {/* Second Header Row - Not Sticky */}
-      {/* <div className="bg-white border-b border-gray-200 py-1.5">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-1.5">
-            <div className="flex items-center gap-2">
-              <TrendingUp size={12} className="text-gray-500" />
-              <p className="text-[11px] text-gray-600">
-                ✨ Free Express Shipping on orders over $50
-              </p>
-            </div>
-            <div className="flex items-center gap-1">
-              <ButtonPrimary
-                title="My Account"
-                icon={<User size={13} strokeWidth={1.8} />}
-                variant="text"
-                bgColor="#6B7280"
-                onClick={handleClick}
-                size="sm"
-              />
-              <div className="w-px h-3 bg-gray-300"></div>
-              <ButtonPrimary
-                title="Wishlist"
-                icon={<Heart size={13} strokeWidth={1.8} />}
-                variant="text"
-                bgColor="#6B7280"
-                onClick={handleClick}
-                size="sm"
-              />
-              <div className="w-px h-3 bg-gray-300"></div>
-              <ButtonPrimary
-                title="English"
-                icon={<Languages size={12} strokeWidth={1.8} />}
-                variant="solid"
-                bgColor="#E5E7EB"
-                onClick={handleClick}
-                size="sm"
-              />
-            </div>
-          </div>
-        </div>
-      </div> */}
-
-      {/* Main Header - Sticky */}
-      <div style={{ width: 'calc(100% - 20%)', left: '20%' }} className="fixed top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-3">
+      {/* Main Header - Responsive width using Tailwind */}
+      <div className="fixed top-0 z-50 bg-white border-b border-gray-200 shadow-sm lg:left-[20%] lg:w-[calc(100%-20%)] w-full">
+        <div className="px-4 py-3">
           <div className="flex items-center justify-between gap-4">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2 group shrink-0">
@@ -143,21 +72,19 @@ export const Header = () => {
               </div>
             </Link>
 
-            {/* Search Bar - Centered */}
-            <div className="flex-1 max-w-md">
+            {/* Search Bar - Hide on mobile, show on tablet+ */}
+            <div className="hidden md:block flex-1 max-w-md">
               <SearchInput />
             </div>
 
-          
-
             {/* Contact & Cart */}
-            <div className="flex items-center gap-4">
-              {/* Call Support */}
+            <div className="flex items-center gap-2 sm:gap-4">
+              {/* Call Support - Hide on mobile, show on tablet+ */}
               <div className="hidden md:flex items-center gap-2 group cursor-pointer">
                 <div className="p-1.5 bg-gray-100 rounded-lg group-hover:bg-gray-200 transition-all duration-300">
                   <Headset size={20} color="#6B7280" strokeWidth={1.5} />
                 </div>
-                <div>
+                <div className="hidden lg:block">
                   <div className="uppercase text-[9px] font-semibold text-gray-400 tracking-wider">
                     Call Us Now
                   </div>
@@ -170,7 +97,7 @@ export const Header = () => {
               {/* Shopping Cart */}
               <div className="flex items-center gap-2 group cursor-pointer relative">
                 <CartIcon />
-                <div className="hidden md:block">
+                <div className="hidden lg:block">
                   <div className="uppercase text-[9px] font-semibold text-gray-400 tracking-wider">
                     Cart
                   </div>
@@ -179,6 +106,9 @@ export const Header = () => {
                   </div>
                 </div>
               </div>
+
+              {/* User Dropdown */}
+              <UserDropdown />
 
               {/* Mobile Menu Button */}
               <button
@@ -192,10 +122,12 @@ export const Header = () => {
                 )}
               </button>
             </div>
-              {/* User Dropdown - Replacing the old button */}
-            <UserDropdown />
           </div>
-          
+
+          {/* Mobile Search - Only visible on mobile */}
+          <div className="md:hidden mt-3">
+            <SearchInput />
+          </div>
 
           {/* Mobile Navigation Menu */}
           {mobileMenuOpen && (
@@ -218,6 +150,9 @@ export const Header = () => {
           )}
         </div>
       </div>
+
+      {/* Spacer to prevent content from hiding under fixed header */}
+      <div className="h-[73px] md:h-[73px] lg:h-[73px]"></div>
     </>
   );
 };

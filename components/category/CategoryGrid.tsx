@@ -36,7 +36,7 @@ export default function CategoryGrid({
   if (variant === "grid") {
     // Standard grid layout
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="shop-container mx-auto px-4 py-8">
         {title && (
           <h2 className="text-lg font-bold text-gray-900 mb-6">{title}</h2>
         )}
@@ -57,7 +57,7 @@ export default function CategoryGrid({
   });
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="shop-container mx-auto px-4 py-8">
       {title && (
         <h2 className="text-md font-normal uppercase text-gray-500 mb-3">{title}</h2>
       )}
