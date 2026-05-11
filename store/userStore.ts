@@ -111,8 +111,8 @@ export const useUserStore = create<UserStore>()(
 
       // Getters
       getUser: () => {
-        const state = get();
-        return state.user;
+        const {user} = get();
+        return user;
       },
 
       getUserData: () => {
