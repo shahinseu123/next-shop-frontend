@@ -1,100 +1,77 @@
-// components/coupon/CouponInput.tsx
+// components/cart/CouponInput.tsx
+"use client";
 
-import React, { useState } from "react";
-import { Tag, Gift, X, Loader2, CheckCircle, AlertCircle } from "lucide-react";
-import { AppliedCouponResponse } from "@/type/shop";
+import { useState } from "react";
+import { useCartStore } from "@/store/cartStore";
+import { Tag, X, Loader2 } from "lucide-react";
 
-interface CouponInputProps {
-  onApply: (code: string) => Promise<boolean>;
-  onRemove: () => void;
-  appliedCoupon?: AppliedCouponResponse | null;
-  isApplying?: boolean;
-  isRemoving?: boolean;
-  error?: string | null;
-  className?: string;
-}
-
-// Helper function to format price from cents to dollars
-const formatPrice = (cents: number): string => {
-  return `$${(cents / 100).toFixed(2)}`;
-};
-
-export const CouponInput: React.FC<CouponInputProps> = ({
-  onApply,
-  onRemove,
-  appliedCoupon,
-  isApplying = false,
-  isRemoving = false,
-  error = null,
-  className = "",
-}) => {
+export function CouponInput() {
   const [couponCode, setCouponCode] = useState("");
-  const [localError, setLocalError] = useState<string | null>(null);
+  const [isApplying, setIsApplying] = useState(false);
+  const [error, setError] = useState("");
+  
+  const { 
+    appliedCoupon, 
+    applyCoupon, 
+    removeCoupon,
+    couponLoading,
+    couponError 
+  } = useCartStore();
 
-  const handleApply = async () => {
-    if (!couponCode.trim()) {
-      setLocalError("Please enter a coupon code");
-      return;
-    }
-
-    setLocalError(null);
-    const success = await onApply(couponCode.toUpperCase().trim());
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim() || isApplying) return;
     
-    if (success) {
-      setCouponCode("");
+    setIsApplying(true);
+    setError("");
+    
+    try {
+      const success = await applyCoupon(couponCode.trim().toUpperCase());
+      if (success) {
+        setCouponCode("");
+      }
+    } catch (err) {
+      setError("Failed to apply coupon");
+    } finally {
+      setIsApplying(false);
     }
+  };
+
+  const handleRemoveCoupon = async () => {
+    await removeCoupon();
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      handleApply();
+    if (e.key === 'Enter') {
+      handleApplyCoupon();
     }
   };
 
-  // If coupon is applied, show applied state
   if (appliedCoupon) {
-    const discountText = appliedCoupon.discountType === "PERCENTAGE"
-      ? `${appliedCoupon.discountValue}% OFF`
-      : `${formatPrice(appliedCoupon.discountValue * 100)} OFF`;
-
-    const savingsText = appliedCoupon.discountType === "PERCENTAGE"
-      ? `${appliedCoupon.discountValue}%`
-      : formatPrice(appliedCoupon.discountAmount);
-
     return (
-      <div className={`bg-green-50 border border-green-200 rounded-lg p-4 ${className}`}>
+      <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-              <Gift className="w-5 h-5 text-green-600" />
+          <div className="flex items-center gap-2">
+            <div className="p-1 bg-emerald-100 rounded">
+              <Tag className="w-3.5 h-3.5 text-emerald-600" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-green-800">
-                  {appliedCoupon.couponCode}
-                </span>
-                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                  Applied
-                </span>
-              </div>
-              <p className="text-sm text-green-600">
-                {discountText} discount applied
+              <p className="text-xs font-medium text-emerald-700">
+                Coupon Applied: {appliedCoupon.code}
               </p>
-              <p className="text-xs text-green-500 mt-1">
-                You saved {savingsText}
+              <p className="text-[10px] text-emerald-600">
+                Discount: -BDT {appliedCoupon.discountAmount.toFixed(2)}
               </p>
             </div>
           </div>
           <button
-            onClick={onRemove}
-            disabled={isRemoving}
-            className="p-1.5 hover:bg-green-100 rounded-lg transition-colors disabled:opacity-50"
-            title="Remove coupon"
+            onClick={handleRemoveCoupon}
+            disabled={couponLoading}
+            className="text-emerald-500 hover:text-emerald-600 transition-colors disabled:opacity-50"
           >
-            {isRemoving ? (
-              <Loader2 className="w-4 h-4 text-green-600 animate-spin" />
+            {couponLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
-              <X className="w-4 h-4 text-green-600" />
+              <X className="w-4 h-4" />
             )}
           </button>
         </div>
@@ -102,39 +79,65 @@ export const CouponInput: React.FC<CouponInputProps> = ({
     );
   }
 
-  // Show input form
   return (
-    <div className={`space-y-2 ${className}`}>
+    <div>
       <div className="flex gap-2">
-        <div className="flex-1 relative">
-          <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <div className="relative flex-1">
           <input
             type="text"
             value={couponCode}
-            onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+            onChange={(e) => {
+              setCouponCode(e.target.value.toUpperCase());
+              setError("");
+            }}
             onKeyPress={handleKeyPress}
             placeholder="Enter coupon code"
-            disabled={isApplying}
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed"
+            disabled={isApplying || couponLoading}
+            className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none disabled:bg-gray-50 disabled:cursor-not-allowed"
+            maxLength={20}
           />
+          {couponCode && !isApplying && (
+            <button
+              onClick={() => setCouponCode("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          )}
         </div>
         <button
-          onClick={handleApply}
-          disabled={isApplying || !couponCode.trim()}
-          className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors font-medium"
+          onClick={handleApplyCoupon}
+          disabled={!couponCode.trim() || isApplying || couponLoading}
+          className="px-4 py-2 bg-gray-900 text-white text-xs font-medium rounded-lg hover:bg-gray-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap flex items-center gap-1.5"
         >
-          {isApplying && <Loader2 className="w-4 h-4 animate-spin" />}
-          Apply
+          {isApplying || couponLoading ? (
+            <>
+              <Loader2 className="w-3 h-3 animate-spin" />
+              Applying
+            </>
+          ) : (
+            <>
+              <Tag className="w-3 h-3" />
+              Apply
+            </>
+          )}
         </button>
       </div>
       
-      {/* Error message */}
-      {(error || localError) && (
-        <div className="flex items-center gap-2 text-red-600 text-sm">
-          <AlertCircle className="w-4 h-4" />
-          <span>{error || localError}</span>
-        </div>
+      {/* Error Message */}
+      {(error || couponError) && (
+        <p className="text-[10px] text-red-500 mt-1.5 flex items-center gap-1">
+          <X className="w-3 h-3" />
+          {error || couponError}
+        </p>
+      )}
+      
+      {/* Hint */}
+      {!error && !couponError && (
+        <p className="text-[10px] text-gray-400 mt-1.5">
+          Try codes: SAVE10, FREESHIP, WELCOME20
+        </p>
       )}
     </div>
   );
-};
+}

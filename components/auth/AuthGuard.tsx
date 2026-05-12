@@ -1,56 +1,39 @@
 "use client";
 
-import { useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import { useUserStore } from '@/store/userStore';
-import { tokenService } from '@/lib/auth';
+import { useEffect, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { tokenService } from "@/lib/auth";
 
 interface AuthGuardProps {
   children: React.ReactNode;
-  requiredRoles?: string[];
 }
 
-export function AuthGuard({ children, requiredRoles = [] }: AuthGuardProps) {
+export function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isAuthenticated, isLoading } = useUserStore();
-  const hasToken = tokenService.getToken();
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
-    // If no token and not on login/register page, redirect to login
-    if (!hasToken && !isAuthenticated && !isLoading) {
-      if (!pathname.includes('/login') && !pathname.includes('/register')) {
-        router.push('/login');
-      }
-      return;
+    const token = tokenService.getToken();
+    
+    if (!token) {
+      // Redirect to login with return URL
+      router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
+    } else {
+      setIsAuthorized(true);
     }
+  }, [router, pathname]);
 
-    // Check role-based access
-    if (user && requiredRoles.length > 0) {
-      const hasRequiredRole = requiredRoles.includes(user.role || 'user');
-      if (!hasRequiredRole) {
-        router.push('/unauthorized');
-      }
-    }
-  }, [hasToken, isAuthenticated, isLoading, router, pathname, user, requiredRoles]);
-
-  // Show loading state while checking auth
-  if (isLoading) {
+  if (!isAuthorized) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-500">Loading...</p>
+          <div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-sm text-gray-500">Checking authentication...</p>
         </div>
       </div>
     );
   }
 
-  // If authenticated or on public routes, render children
-  if (hasToken || isAuthenticated || pathname.includes('/login') || pathname.includes('/register')) {
-    return <>{children}</>;
-  }
-
-  // Default: return null while redirecting
-  return null;
+  return <>{children}</>;
 }

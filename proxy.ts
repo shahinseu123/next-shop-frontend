@@ -1,4 +1,4 @@
-// proxy.ts (place in project root, same level as app directory)
+// proxy.ts
 import { NextRequest, NextResponse } from 'next/server';
 
 // Protected routes that require authentication
@@ -11,6 +11,8 @@ const protectedRoutes = [
   '/settings',
   '/returns',
   '/reviews',
+  '/cart',        // Add cart
+  '/checkout',    // Add checkout
 ];
 
 // Auth routes (redirect to dashboard if already logged in)
@@ -19,7 +21,7 @@ const authRoutes = ['/login', '/register', '/forgot-password'];
 export default function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
-  // Get auth token from cookies (adjust based on your auth implementation)
+  // Get auth token from cookies
   const token = request.cookies.get('auth-token')?.value;
   const isAuthenticated = !!token;
   
@@ -28,7 +30,7 @@ export default function proxy(request: NextRequest) {
   
   // Check if route needs protection
   const needsAuth = protectedRoutes.some(route => 
-    pathname.includes(route)
+    pathname === route || pathname.startsWith(route + '/')
   ) || isUserRoute;
   
   // Redirect to login if accessing protected route without auth

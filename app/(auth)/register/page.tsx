@@ -1,9 +1,9 @@
 // app/register/page.tsx
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useUserService } from "@/services/userService";
 import {
   User,
@@ -15,7 +15,6 @@ import {
   Shield,
   Sparkles,
   Phone,
-  AtSign,
   CheckCircle,
   AlertCircle,
   LogIn,
@@ -35,15 +34,16 @@ interface RegisterResponse {
     id: number;
     name: string;
     email: string;
-    // username: string;
     phoneNumber?: string;
   };
 }
 
-export default function RegisterPage() {
+function RegisterForm() {
   const { setUser, setAuthenticated } = useUserStore();
   const { fetchUser } = useUserService();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get('redirect') || '/';
 
   // Refs for cleanup
   const timeoutRef = useRef<NodeJS.Timeout>();
@@ -56,12 +56,12 @@ export default function RegisterPage() {
     name: "",
     email: "",
     phoneNumber: "",
-    // username: "",
     password: "",
     confirmPassword: "",
     agreeTerms: false,
   });
   const [generalError, setGeneralError] = useState<string>("");
+  const [successMessage, setSuccessMessage] = useState<string>("");
 
   // Cleanup on unmount
   useEffect(() => {
@@ -90,7 +90,11 @@ export default function RegisterPage() {
           return;
         }
 
+        // Save token to localStorage
         tokenService.setToken(token);
+        
+        // Also set cookie for middleware
+        document.cookie = `access_token=${token}; path=/; SameSite=Lax`;
 
         try {
           const userData = await fetchUser();
@@ -99,21 +103,28 @@ export default function RegisterPage() {
             if (userData) {
               setUser(userData);
               setAuthenticated(true);
-              router.push("/");
-              router.refresh();
+              setSuccessMessage("Account created successfully! Redirecting...");
+              
+              // Redirect to the intended page or home
+              timeoutRef.current = setTimeout(() => {
+                router.push(redirectTo);
+                router.refresh();
+              }, 1000);
             } else {
               console.warn("User data is null after successful login");
-              router.push(
-                "/login?registered=true&message=Account created! Please sign in."
-              );
+              timeoutRef.current = setTimeout(() => {
+                router.push("/login?registered=true&message=Account created! Please sign in.");
+              }, 1000);
             }
           }
         } catch (error) {
           console.error("Failed to fetch user info:", error);
 
           if (mountedRef.current) {
-            router.push("/");
-            router.refresh();
+            timeoutRef.current = setTimeout(() => {
+              router.push(redirectTo);
+              router.refresh();
+            }, 500);
           }
         }
       },
@@ -170,13 +181,11 @@ export default function RegisterPage() {
   } = useValidation({
     schema: registerSchema,
     onSuccess: async (data) => {
-      console.log("✅ Validation passed, calling register API");
       await executeRegister({
         data: {
           name: data.name,
           email: data.email,
           phoneNumber: data.phoneNumber || undefined,
-          // username: data.username,
           password: data.password,
         },
       });
@@ -196,20 +205,7 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("📋 handleSubmit called");
-    console.log("📋 Form data:", formData);
-    
-    // Try to validate manually
-    try {
-      await registerSchema.parseAsync(formData);
-      console.log("✅ Manual validation passed");
-    } catch (validationError) {
-      console.log("❌ Manual validation failed:", validationError);
-    }
-    
-    console.log("🔄 Calling validateForm...");
     validateForm(formData);
-    console.log("✅ validateForm called (but might be async)");
   };
 
   // Password strength calculation
@@ -280,6 +276,16 @@ export default function RegisterPage() {
 
       {/* Register Card */}
       <div className="relative w-full max-w-sm">
+        {/* Redirect Info */}
+        {redirectTo !== '/' && (
+          <div className="mb-3 bg-blue-50 border border-blue-200 rounded-lg p-2.5">
+            <p className="text-xs text-blue-700 flex items-center gap-1.5">
+              <AlertCircle size={12} />
+              Create an account to access {redirectTo}
+            </p>
+          </div>
+        )}
+
         <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-indigo-100 overflow-hidden">
           {/* Header */}
           <div className="px-5 pt-5 pb-3 text-center border-b border-indigo-100">
@@ -294,12 +300,19 @@ export default function RegisterPage() {
             </p>
           </div>
 
+          {/* Success Message */}
+          {successMessage && (
+            <div className="mx-5 mt-3 p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg">
+              <p className="text-emerald-600 text-xs text-center flex items-center justify-center gap-1.5">
+                <CheckCircle size={12} />
+                {successMessage}
+              </p>
+            </div>
+          )}
+
           {/* Error Alert */}
           {generalError && (
-            <div
-              className="mx-5 mt-3 p-2.5 bg-red-50 border border-red-200 rounded-lg"
-              role="alert"
-            >
+            <div className="mx-5 mt-3 p-2.5 bg-red-50 border border-red-200 rounded-lg" role="alert">
               <p className="text-red-600 text-xs text-center flex items-center justify-center gap-1.5">
                 <AlertCircle size={12} />
                 {generalError}
@@ -308,27 +321,14 @@ export default function RegisterPage() {
           )}
 
           {/* Form */}
-          <form
-            onSubmit={(e) => {
-              console.log("🔄 Form onSubmit triggered");
-              handleSubmit(e);
-            }}
-            className="px-5 py-3 space-y-3"
-            noValidate
-          >
+          <form onSubmit={handleSubmit} className="px-5 py-3 space-y-3" noValidate>
             {/* Full Name */}
             <div>
-              <label
-                htmlFor="name"
-                className="block text-gray-700 text-xs font-medium mb-1"
-              >
+              <label htmlFor="name" className="block text-gray-700 text-xs font-medium mb-1">
                 Full Name <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <User
-                  size={14}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                />
+                <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   id="name"
                   type="text"
@@ -345,87 +345,26 @@ export default function RegisterPage() {
                   }`}
                   placeholder="Enter your full name"
                   disabled={isLoading}
-                  aria-invalid={hasError("name")}
-                  aria-describedby={
-                    hasError("name") ? "name-error" : undefined
-                  }
                 />
                 {touched.name && !errors.name && formData.name && (
-                  <CheckCircle
-                    size={14}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500"
-                  />
+                  <CheckCircle size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500" />
                 )}
               </div>
               {hasError("name") && (
-                <p
-                  id="name-error"
-                  className="text-red-500 text-[10px] mt-0.5 flex items-center gap-1"
-                  role="alert"
-                >
+                <p className="text-red-500 text-[10px] mt-0.5 flex items-center gap-1" role="alert">
                   <AlertCircle size={10} />
                   {errors.name}
                 </p>
               )}
             </div>
 
-            {/* Username */}
-            {/* <div>
-              <label
-                htmlFor="username"
-                className="block text-gray-700 text-xs font-medium mb-1"
-              >
-                Username <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <AtSign
-                  size={14}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                />
-                <input
-                  id="username"
-                  type="text"
-                  name="username"
-                  value={formData.username}
-                  onChange={handleChange}
-                  onBlur={() => handleBlur("username")}
-                  className={`w-full pl-9 pr-3 py-2 text-sm bg-gray-50 border rounded-lg focus:outline-none focus:ring-2 transition-all ${
-                    hasError("username")
-                      ? "border-red-400 focus:border-red-400 focus:ring-red-200"
-                      : "border-gray-200 focus:border-indigo-300 focus:ring-indigo-200"
-                  }`}
-                  placeholder="Choose a username"
-                  disabled={isLoading}
-                  aria-invalid={hasError("username")}
-                  aria-describedby={
-                    hasError("username") ? "username-error" : undefined
-                  }
-                />
-              </div>
-              {hasError("username") && (
-                <p
-                  id="username-error"
-                  className="text-red-500 text-[10px] mt-0.5"
-                  role="alert"
-                >
-                  {errors.username}
-                </p>
-              )}
-            </div> */}
-
             {/* Email */}
             <div>
-              <label
-                htmlFor="email"
-                className="block text-gray-700 text-xs font-medium mb-1"
-              >
+              <label htmlFor="email" className="block text-gray-700 text-xs font-medium mb-1">
                 Email <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <Mail
-                  size={14}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                />
+                <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   id="email"
                   type="email"
@@ -440,18 +379,10 @@ export default function RegisterPage() {
                   }`}
                   placeholder="Enter your email"
                   disabled={isLoading}
-                  aria-invalid={hasError("email")}
-                  aria-describedby={
-                    hasError("email") ? "email-error" : undefined
-                  }
                 />
               </div>
               {hasError("email") && (
-                <p
-                  id="email-error"
-                  className="text-red-500 text-[10px] mt-0.5"
-                  role="alert"
-                >
+                <p className="text-red-500 text-[10px] mt-0.5" role="alert">
                   {errors.email}
                 </p>
               )}
@@ -459,17 +390,11 @@ export default function RegisterPage() {
 
             {/* Phone Number */}
             <div>
-              <label
-                htmlFor="phoneNumber"
-                className="block text-gray-700 text-xs font-medium mb-1"
-              >
+              <label htmlFor="phoneNumber" className="block text-gray-700 text-xs font-medium mb-1">
                 Phone <span className="text-gray-400">(Optional)</span>
               </label>
               <div className="relative">
-                <Phone
-                  size={14}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                />
+                <Phone size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   id="phoneNumber"
                   type="tel"
@@ -485,17 +410,11 @@ export default function RegisterPage() {
 
             {/* Password */}
             <div>
-              <label
-                htmlFor="password"
-                className="block text-gray-700 text-xs font-medium mb-1"
-              >
+              <label htmlFor="password" className="block text-gray-700 text-xs font-medium mb-1">
                 Password <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <Lock
-                  size={14}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                />
+                <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   id="password"
                   type={showPassword ? "text" : "password"}
@@ -510,57 +429,37 @@ export default function RegisterPage() {
                   }`}
                   placeholder="Create a password"
                   disabled={isLoading}
-                  aria-invalid={hasError("password")}
-                  aria-describedby={
-                    hasError("password")
-                      ? "password-error"
-                      : "password-requirements"
-                  }
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                  aria-label={
-                    showPassword ? "Hide password" : "Show password"
-                  }
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
               </div>
 
               {formData.password && (
-                <div id="password-requirements" className="mt-1.5 space-y-1">
-                  {/* Strength bar */}
+                <div className="mt-1.5 space-y-1">
                   <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all duration-300 ${getStrengthText.bgColor}`}
                       style={{ width: `${(strengthCount / 4) * 100}%` }}
                     />
                   </div>
-                  <p
-                    className={`text-[10px] font-medium ${getStrengthText.color}`}
-                  >
+                  <p className={`text-[10px] font-medium ${getStrengthText.color}`}>
                     {getStrengthText.text} password
                   </p>
-
-                  {/* Requirements checklist */}
                   <div className="space-y-0.5 mt-1">
                     {passwordRequirements.map((req, index) => (
                       <div key={index} className="flex items-center gap-1">
                         {req.met ? (
-                          <CheckCircle
-                            size={10}
-                            className="text-green-500"
-                          />
+                          <CheckCircle size={10} className="text-green-500" />
                         ) : (
                           <AlertCircle size={10} className="text-gray-300" />
                         )}
-                        <span
-                          className={`text-[10px] ${
-                            req.met ? "text-green-600" : "text-gray-400"
-                          }`}
-                        >
+                        <span className={`text-[10px] ${req.met ? "text-green-600" : "text-gray-400"}`}>
                           {req.text}
                         </span>
                       </div>
@@ -570,11 +469,7 @@ export default function RegisterPage() {
               )}
 
               {hasError("password") && (
-                <p
-                  id="password-error"
-                  className="text-red-500 text-[10px] mt-0.5"
-                  role="alert"
-                >
+                <p className="text-red-500 text-[10px] mt-0.5" role="alert">
                   {errors.password}
                 </p>
               )}
@@ -582,17 +477,11 @@ export default function RegisterPage() {
 
             {/* Confirm Password */}
             <div>
-              <label
-                htmlFor="confirmPassword"
-                className="block text-gray-700 text-xs font-medium mb-1"
-              >
+              <label htmlFor="confirmPassword" className="block text-gray-700 text-xs font-medium mb-1">
                 Confirm Password <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <Lock
-                  size={14}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                />
+                <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   id="confirmPassword"
                   type={showConfirmPassword ? "text" : "password"}
@@ -607,36 +496,18 @@ export default function RegisterPage() {
                   }`}
                   placeholder="Confirm your password"
                   disabled={isLoading}
-                  aria-invalid={hasError("confirmPassword")}
-                  aria-describedby={
-                    hasError("confirmPassword")
-                      ? "confirmPassword-error"
-                      : undefined
-                  }
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                  aria-label={
-                    showConfirmPassword
-                      ? "Hide confirm password"
-                      : "Show confirm password"
-                  }
+                  aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
                 >
-                  {showConfirmPassword ? (
-                    <EyeOff size={14} />
-                  ) : (
-                    <Eye size={14} />
-                  )}
+                  {showConfirmPassword ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
               </div>
               {hasError("confirmPassword") && (
-                <p
-                  id="confirmPassword-error"
-                  className="text-red-500 text-[10px] mt-0.5"
-                  role="alert"
-                >
+                <p className="text-red-500 text-[10px] mt-0.5" role="alert">
                   {errors.confirmPassword}
                 </p>
               )}
@@ -653,37 +524,20 @@ export default function RegisterPage() {
                 onBlur={() => handleBlur("agreeTerms")}
                 className="mt-0.5 w-3.5 h-3.5 text-indigo-500 bg-gray-50 border-gray-300 rounded focus:ring-indigo-400 focus:ring-2"
                 disabled={isLoading}
-                aria-invalid={hasError("agreeTerms")}
-                aria-describedby={
-                  hasError("agreeTerms") ? "agreeTerms-error" : undefined
-                }
               />
-              <label
-                htmlFor="agreeTerms"
-                className="text-[10px] text-gray-500 leading-relaxed"
-              >
+              <label htmlFor="agreeTerms" className="text-[10px] text-gray-500 leading-relaxed">
                 I agree to the{" "}
-                <Link
-                  href="/terms"
-                  className="text-indigo-600 hover:text-indigo-800 font-medium"
-                >
+                <Link href="/terms" className="text-indigo-600 hover:text-indigo-800 font-medium">
                   Terms of Service
                 </Link>{" "}
                 and{" "}
-                <Link
-                  href="/privacy"
-                  className="text-indigo-600 hover:text-indigo-800 font-medium"
-                >
+                <Link href="/privacy" className="text-indigo-600 hover:text-indigo-800 font-medium">
                   Privacy Policy
                 </Link>
               </label>
             </div>
             {hasError("agreeTerms") && (
-              <p
-                id="agreeTerms-error"
-                className="text-red-500 text-[10px] flex items-center gap-1"
-                role="alert"
-              >
+              <p className="text-red-500 text-[10px] flex items-center gap-1" role="alert">
                 <AlertCircle size={10} />
                 {errors.agreeTerms}
               </p>
@@ -699,7 +553,7 @@ export default function RegisterPage() {
               variant="primary"
               disabled={isLoading}
             >
-              Sign Up
+              Create Account
             </SubmitButton>
           </form>
 
@@ -727,5 +581,21 @@ export default function RegisterPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Wrap in Suspense for useSearchParams
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-sm text-gray-500">Loading...</p>
+        </div>
+      </div>
+    }>
+      <RegisterForm />
+    </Suspense>
   );
 }

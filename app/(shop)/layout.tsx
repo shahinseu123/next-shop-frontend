@@ -7,6 +7,8 @@ import { useState, useEffect } from "react";
 import { Menu } from "lucide-react";
 import CartDrawer from "@/components/cart/CartDrawer";
 import { Toaster } from 'sonner';
+import { CartInitializer } from "@/components/cart/CartInitializer";
+
 
 export default function ShopLayout({
   children,
@@ -51,6 +53,7 @@ export default function ShopLayout({
               {children}
             </div>
           </main>
+          <CartInitializer />
           <Footer />
         </div>
         <CartDrawer />
@@ -104,6 +107,7 @@ export default function ShopLayout({
           {children}
         </div>
       </main>
+      <CartInitializer />
       <Footer />
 
       <style jsx global>{`

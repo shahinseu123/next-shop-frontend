@@ -1,9 +1,9 @@
 // app/login/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Mail,
   Lock,
@@ -15,7 +15,6 @@ import {
   CheckCircle,
   AlertCircle,
 } from "lucide-react";
-import { ButtonPrimary } from "@/components/utility/ButtonPrimary";
 import { tokenService } from "@/lib/auth";
 import { useApi } from "@/hook/useApi";
 import { loginSchema, LoginFormData } from "@/lib/validation/auth";
@@ -24,8 +23,11 @@ import { useUserStore } from "@/store/userStore";
 import { useUserService } from "@/services/userService";
 import { SubmitButton } from "@/components/utility/SubmitButton";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get('redirect') || '/';
+  
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState<LoginFormData>({
     email: "",
@@ -43,6 +45,13 @@ export default function LoginPage() {
       if (token) {
         tokenService.setToken(token);
 
+        // If remember me is checked, also set in cookie for middleware
+        if (formData.rememberMe) {
+          document.cookie = `access_token=${token}; path=/; max-age=2592000; SameSite=Lax`; // 30 days
+        } else {
+          document.cookie = `access_token=${token}; path=/; SameSite=Lax`; // Session cookie
+        }
+
         // Fetch user info after successful login
         try {
           const userData = await fetchUser();
@@ -50,9 +59,12 @@ export default function LoginPage() {
             setUser(userData);
             setAuthenticated(true);
 
-            // Redirect to home or previous page
+            // Show success message
+            console.log('Login successful, redirecting to:', redirectTo);
+            
+            // Redirect to the intended page or home
             setTimeout(() => {
-              router.push("/");
+              router.push(redirectTo);
               router.refresh();
             }, 500);
           }
@@ -60,7 +72,7 @@ export default function LoginPage() {
           console.error("Failed to fetch user info:", error);
           // Still redirect even if user fetch fails
           setTimeout(() => {
-            router.push("/");
+            router.push(redirectTo);
             router.refresh();
           }, 500);
         }
@@ -114,6 +126,16 @@ export default function LoginPage() {
 
       {/* Login Card */}
       <div className="relative w-full max-w-sm">
+        {/* Redirect Info */}
+        {redirectTo !== '/' && (
+          <div className="mb-3 bg-amber-50 border border-amber-200 rounded-lg p-2.5">
+            <p className="text-xs text-amber-700 flex items-center gap-1.5">
+              <AlertCircle size={12} />
+              Please login to access {redirectTo}
+            </p>
+          </div>
+        )}
+
         <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-indigo-100 overflow-hidden">
           {/* Header */}
           <div className="px-5 pt-5 pb-3 text-center border-b border-indigo-100">
@@ -128,7 +150,7 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* Form - Only one handleSubmit here */}
+          {/* Form */}
           <form onSubmit={handleSubmit} className="px-5 py-4 space-y-4">
             {/* Email Field */}
             <div>
@@ -230,7 +252,7 @@ export default function LoginPage() {
               </Link>
             </div>
 
-            {/* Submit Button - Removed onClick handler since form onSubmit handles it */}
+            {/* Submit Button */}
             <SubmitButton
               loading={loading}
               type="submit"
@@ -246,7 +268,7 @@ export default function LoginPage() {
           {/* Footer */}
           <div className="px-5 py-3 bg-indigo-50/30 border-t border-indigo-100 text-center">
             <p className="text-gray-500 text-xs">
-              Don't have an account?
+              Don't have an account?{" "}
               <Link
                 href="/register"
                 className="text-indigo-600 hover:text-indigo-800 font-semibold transition-colors"
@@ -267,5 +289,21 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Wrap in Suspense because useSearchParams needs it
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-sm text-gray-500">Loading...</p>
+        </div>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }

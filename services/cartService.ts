@@ -1,6 +1,5 @@
-// services/cartService.ts
-
-import { useApi } from "@/hook/useApi";
+// services/cart.service.ts
+import { apiFetch } from '@/lib/api';
 
 export interface CartItem {
   id: number;
@@ -17,58 +16,80 @@ export interface CartResponse {
   userId: number | null;
   items: CartItem[];
   subtotal: number;
+  shippingCost: number;
+  discountAmount: number;
+  finalAmount: number;
   appliedCouponCode: string | null;
+}
+
+export interface CouponResponse {
+  couponCode: string;
   discountAmount: number;
   finalAmount: number;
 }
 
-export const useCartService = () => {
-  const { execute: createCartApi, loading: createLoading } = useApi<CartResponse>("/api/v1/carts/create", "POST");
-  const { execute: getCartApi, loading: getLoading } = useApi<CartResponse>("", "GET");
-  const { execute: addItemApi, loading: addLoading } = useApi<CartResponse>("", "POST");
-  const { execute: removeItemApi, loading: removeLoading } = useApi<CartResponse>("", "DELETE");
-  const { execute: updateQuantityApi, loading: updateLoading } = useApi<CartResponse>("", "PUT");
-  const { execute: clearCartApi, loading: clearLoading } = useApi<void>("", "DELETE");
+class CartService {
+  private basePath = '/api/v1/carts';
+  private couponPath = '/api/v1/coupons';
 
-  const createCart = async (sessionId: string, userId?: number) => {
-    const params: Record<string, string> = { sessionId };
-    if (userId) params.userId = userId.toString();
-    return await createCartApi({ params });
-  };
-
-  const getCart = async (cartId: number) => {
-    return await getCartApi({ url: `/api/v1/carts/${cartId}` });
-  };
-
-  const addItem = async (cartId: number, productId: number, quantity: number) => {
-    return await addItemApi({
-      url: `/api/v1/carts/${cartId}/items`,
-      params: { productId, quantity }
+  async createCart(sessionId: string, userId?: number) {
+    const params: Record<string, string | number> = { sessionId };
+    if (userId) params.userId = userId;
+    
+    return apiFetch<CartResponse>(`${this.basePath}/create`, {
+      method: 'POST',
+      params
     });
-  };
+  }
 
-  const removeItem = async (cartId: number, itemId: number) => {
-    return await removeItemApi({ url: `/api/v1/carts/${cartId}/items/${itemId}` });
-  };
+  async getCart(cartId: number) {
+    return apiFetch<CartResponse>(`${this.basePath}/${cartId}`);
+  }
 
-  const updateQuantity = async (cartId: number, itemId: number, quantity: number) => {
-    return await updateQuantityApi({
-      url: `/api/v1/carts/${cartId}/items/${itemId}`,
-      params: { quantity }
+  async addItem(cartId: number, productId: number, quantity: number) {
+    return apiFetch<CartResponse>(`${this.basePath}/${cartId}/items`, {
+      method: 'POST',
+      params: { 
+        productId: Number(productId), 
+        quantity: Number(quantity) 
+      }
     });
-  };
+  }
 
-  const clearCart = async (cartId: number) => {
-    return await clearCartApi({ url: `/api/v1/carts/${cartId}` });
-  };
+  async removeItem(cartId: number, itemId: number) {
+    return apiFetch<CartResponse>(`${this.basePath}/${cartId}/items/${itemId}`, {
+      method: 'DELETE'
+    });
+  }
 
-  return {
-    createCart,
-    getCart,
-    addItem,
-    removeItem,
-    updateQuantity,
-    clearCart,
-    isLoading: createLoading || getLoading || addLoading || removeLoading || updateLoading || clearLoading
-  };
-};
+  async updateQuantity(cartId: number, itemId: number, quantity: number) {
+    return apiFetch<CartResponse>(`${this.basePath}/${cartId}/items/${itemId}`, {
+      method: 'PUT',
+      params: { quantity: Number(quantity) }
+    });
+  }
+
+  async clearCart(cartId: number) {
+    return apiFetch(`${this.basePath}/${cartId}`, {
+      method: 'DELETE'
+    });
+  }
+
+  async applyCoupon(couponCode: string, cartId: number, userId?: number) {
+    const params: Record<string, string | number> = { cartId };
+    if (userId) params.userId = userId;
+    
+    return apiFetch<CouponResponse>(`${this.couponPath}/apply/${couponCode}`, {
+      method: 'POST',
+      params
+    });
+  }
+
+  async removeCoupon(cartId: number) {
+    return apiFetch(`${this.couponPath}/remove/${cartId}`, {
+      method: 'DELETE'
+    });
+  }
+}
+
+export const cartService = new CartService();
