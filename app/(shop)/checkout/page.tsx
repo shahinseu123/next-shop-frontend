@@ -5,6 +5,7 @@ import { useCartStore } from "@/store/cartStore";
 import type { CartItem } from "@/services/cartService";
 import { orderService, type OrderCreateDto, type OrderResponse } from "@/services/orderServices";
 import { useToastNotifications } from "@/hook/useToast";
+import { useUserStore } from "@/store/userStore";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -39,7 +40,7 @@ export default function CheckoutPage() {
     isLoading: cartLoading
   } = useCartStore();
   const { showError, showSuccess} = useToastNotifications()
-  
+  const {getUserId} = useUserStore()
   const [mounted, setMounted] = useState(false);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
@@ -165,6 +166,7 @@ export default function CheckoutPage() {
       // Prepare order data matching the backend DTO
       const orderData: OrderCreateDto = {
         cartId: cartId,
+        userId: getUserId(),
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
         email: formData.email.trim(),
@@ -232,7 +234,7 @@ export default function CheckoutPage() {
             Thank you for your purchase, {formData.firstName}!
           </p>
           <p className="text-sm text-gray-500 mb-6">
-            {paymentMethod === "cod" 
+            {paymentMethod === "CASH_ON_DELIVERY" 
               ? "Your order has been confirmed. You will pay BDT " + total.toFixed(2) + " upon delivery."
               : "Your payment of BDT " + total.toFixed(2) + " has been processed successfully."}
           </p>
@@ -455,7 +457,7 @@ export default function CheckoutPage() {
               <div className="space-y-3">
                 {/* Cash on Delivery */}
                 <label className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-all ${
-                  paymentMethod === "cod" ? "border-indigo-500 bg-indigo-50" : "border-gray-200 hover:border-gray-300"
+                  paymentMethod === "CASH_ON_DELIVERY" ? "border-indigo-500 bg-indigo-50" : "border-gray-200 hover:border-gray-300"
                 }`}>
                   <div className="flex items-center gap-3">
                     <input

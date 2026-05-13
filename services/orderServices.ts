@@ -3,6 +3,7 @@ import { apiFetch } from "@/lib/api";
 
 export interface OrderCreateDto {
   cartId: number;
+  userId: number | null;
   firstName: string;
   lastName: string;
   email: string;
@@ -11,7 +12,7 @@ export interface OrderCreateDto {
   city: string;
   postalCode: string;
   country: string;
-  paymentMethod: 'COD' | 'ONLINE';
+  paymentMethod: 'CASH_ON_DELIVERY' | 'ONLINE_PAYMENT';
   cardDetails?: {
     cardNumber: string;
     cardName: string;

@@ -143,6 +143,15 @@ export const UserDropdown = () => {
           {/* Menu Items */}
           <div className="py-2">
             <Link
+              href={`/${getUserId()}/dashboard`}
+              className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors group"
+              onClick={() => setIsOpen(false)}
+            >
+              <UserCircle size={16} className="text-gray-400 group-hover:text-indigo-600 transition-colors" />
+              <span>My Dashboard</span>
+            </Link>
+            
+            <Link
               href={`/${getUserId()}/profile`}
               className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors group"
               onClick={() => setIsOpen(false)}
